@@ -5,6 +5,115 @@
   <title>Barber SaaS</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="stylesheet" href="styles.css" />
+  <!-- opcional, si tenés componentes separados -->
+  <link rel="stylesheet" href="components.css" />
+
+  <!-- Estilos específicos de la demo de reservas -->
+  <style>
+    #demo {
+      padding-top: 4rem;
+    }
+
+    .demo-layout {
+      display: grid;
+      gap: 2.5rem;
+      align-items: flex-start;
+    }
+
+    @media (min-width: 900px) {
+      .demo-layout {
+        grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+      }
+    }
+
+    .demo-text .section-title {
+      margin-bottom: 0.5rem;
+    }
+
+    .demo-card {
+      padding: 2rem 2.4rem;
+      border-radius: 1.5rem;
+      background: radial-gradient(circle at top left, rgba(56,189,248,0.12), transparent 55%),
+                  rgba(6,10,24,0.96);
+      border: 1px solid rgba(148,163,184,0.25);
+      box-shadow: 0 24px 60px rgba(15,23,42,0.9);
+    }
+
+    .demo-card h3 {
+      font-size: 1.1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .demo-form {
+      display: flex;
+      flex-direction: column;
+      gap: 1.1rem;
+    }
+
+    .demo-row {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    @media (min-width: 640px) {
+      .demo-row {
+        flex-direction: row;
+      }
+    }
+
+    .demo-field {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+
+    .demo-field label {
+      font-size: 0.8rem;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: rgba(226, 232, 240, 0.8);
+    }
+
+    .demo-field input,
+    .demo-field select {
+      width: 100%;
+      padding: 0.65rem 0.85rem;
+      border-radius: 0.9rem;
+      border: 1px solid rgba(148, 163, 184, 0.45);
+      background: rgba(15, 23, 42, 0.96);
+      color: #e5e7eb;
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease,
+                  background 0.15s ease, transform 0.05s ease;
+    }
+
+    .demo-field input::placeholder {
+      color: rgba(148, 163, 184, 0.9);
+    }
+
+    .demo-field input:focus,
+    .demo-field select:focus {
+      border-color: rgb(56, 189, 248);
+      box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.6);
+      background: rgba(15,23,42,1);
+      transform: translateY(-1px);
+    }
+
+    .form-helper {
+      margin-top: 0.75rem;
+      font-size: 0.8rem;
+      color: rgba(148, 163, 184, 0.9);
+    }
+
+    #appointmentForm .btn-primary {
+      margin-top: 0.5rem;
+      align-self: flex-start;
+    }
+  </style>
 </head>
 <body class="app">
   <!-- NAVBAR -->
@@ -46,6 +155,7 @@
           </p>
           <div class="hero-cta">
             <a href="#" class="btn btn-primary">Crear cuenta gratis</a>
+            <!-- este botón baja a la demo que agregamos abajo -->
             <a href="#demo" class="btn btn-secondary">Ver demo</a>
           </div>
           <p class="hero-meta">
@@ -75,6 +185,80 @@
             <span class="mini-value">3%</span>
             <span class="mini-helper">Con recordatorios por WhatsApp</span>
           </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- DEMO: formulario conectado al backend -->
+    <section id="demo" class="section">
+      <div class="container demo-layout">
+        <div class="demo-text">
+          <h2 class="section-title">Proba BarberCloud en vivo</h2>
+          <p class="section-subtitle">
+            Este formulario está conectado a la API. Creá un turno de prueba para ver
+            cómo funcionaría el flujo básico de reservas para tus clientes.
+          </p>
+        </div>
+
+        <div class="card demo-card">
+          <h3>Reservar turno de prueba</h3>
+
+          <form id="appointmentForm" class="demo-form">
+            <div class="demo-row">
+              <div class="demo-field">
+                <label for="barbershopSelect">Barbería</label>
+                <select id="barbershopSelect" required></select>
+              </div>
+
+              <div class="demo-field">
+                <label for="serviceSelect">Servicio</label>
+                <select id="serviceSelect" required></select>
+              </div>
+            </div>
+
+            <div class="demo-row">
+              <div class="demo-field">
+                <label for="customerName">Tu nombre</label>
+                <input
+                  type="text"
+                  id="customerName"
+                  placeholder="Ej: Juan Pérez"
+                  required
+                />
+              </div>
+
+              <div class="demo-field">
+                <label for="customerPhone">Teléfono / WhatsApp</label>
+                <input
+                  type="tel"
+                  id="customerPhone"
+                  placeholder="Ej: 351 6xx xxxx"
+                  required
+                />
+              </div>
+            </div>
+
+            <div class="demo-row">
+              <div class="demo-field">
+                <label for="date">Fecha</label>
+                <input type="date" id="date" required />
+              </div>
+
+              <div class="demo-field">
+                <label for="time">Hora</label>
+                <input type="time" id="time" required />
+              </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary">
+              Reservar turno
+            </button>
+
+            <p class="form-helper">
+              Por ahora es solo demo: el turno se guarda en el servidor pero todavía
+              no tiene pago de seña.
+            </p>
+          </form>
         </div>
       </div>
     </section>
@@ -115,5 +299,7 @@
     </section>
   </main>
 
+  <!-- script que conecta el formulario con la API -->
+  <script src="app.js"></script>
 </body>
 </html>
