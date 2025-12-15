@@ -79,8 +79,19 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
   const form = document.getElementById('appointmentForm');
+  const submitBtn = form.querySelector('button[type="submit"]');
+
+  let isSubmitting = false;
+
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
+
+    // Evita doble envío
+    if (isSubmitting) return;
+    isSubmitting = true;
+    submitBtn.disabled = true;
+    const originalText = submitBtn.textContent;
+    submitBtn.textContent = 'Reservando...';
 
     const barbershopId = Number(
       document.getElementById('barbershopSelect').value
@@ -127,6 +138,10 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (err) {
       console.error(err);
       alert('Error de conexión con el servidor');
+    } finally {
+      isSubmitting = false;
+      submitBtn.disabled = false;
+      submitBtn.textContent = originalText;
     }
   });
 });
