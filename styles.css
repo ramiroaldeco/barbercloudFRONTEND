@@ -353,3 +353,165 @@ body.app {
     display: none; /* Más adelante podés hacer un menú hamburguesa */
   }
 }
+/* === Dashboard / Panel admin === */
+
+.dashboard-section {
+  padding-top: 6rem;
+  padding-bottom: 4rem;
+}
+
+.dashboard-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.page-title {
+  font-size: 1.8rem;
+  font-weight: 600;
+}
+
+.page-subtitle {
+  margin-top: 0.4rem;
+  color: var(--muted);
+  max-width: 32rem;
+}
+
+.dashboard-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem;
+}
+
+.dashboard-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: 1.5rem;
+  align-items: flex-start;
+}
+
+@media (max-width: 900px) {
+  .dashboard-summary {
+    grid-template-columns: 1fr;
+  }
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.card-subtitle {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.badge-soft {
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  background: rgba(56, 189, 248, 0.12);
+  color: rgb(125, 211, 252);
+}
+
+/* Tabla turnos */
+
+.table-wrapper {
+  margin-top: 0.75rem;
+  border-radius: var(--radius-xl);
+  background: var(--bg-card);
+  box-shadow: var(--shadow-soft);
+  padding: 0.75rem 1rem 1rem;
+  overflow-x: auto;
+}
+
+.dashboard-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.dashboard-table thead th {
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  font-weight: 500;
+  color: var(--muted);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.25);
+  white-space: nowrap;
+}
+
+.dashboard-table tbody td {
+  padding: 0.45rem 0.75rem;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.7);
+  white-space: nowrap;
+}
+
+.table-empty {
+  text-align: center;
+  padding: 1.2rem 0.75rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+/* Lista de hoy */
+
+.today-list {
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.today-item {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.55rem 0.7rem;
+  border-radius: var(--radius-lg);
+  background: rgba(15, 23, 42, 0.9);
+}
+
+.today-time {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.85rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 999px;
+  background: rgba(56, 189, 248, 0.12);
+  color: rgb(125, 211, 252);
+  align-self: flex-start;
+}
+
+.today-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.today-client {
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.today-service {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.today-phone {
+  opacity: 0.9;
+}
