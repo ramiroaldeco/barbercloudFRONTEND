@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Panel BarberCloud</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Tus estilos existentes -->
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="components.css" />
+</head>
+<body class="app">
+  <!-- NAV igual estilo al index -->
+  <header class="nav">
+    <div class="nav-inner">
+      <a href="index.html" class="brand">
+        <span class="brand-logo">B</span>
+        <span class="brand-text">
+          <span class="brand-title">BarberCloud</span>
+          <span class="brand-subtitle">Panel de barberos</span>
+        </span>
+      </a>
+
+      <nav class="nav-links">
+        <a href="index.html">Inicio</a>
+        <a href="admin.html" class="active">Panel</a>
+      </nav>
+
+      <div class="nav-actions">
+        <button class="btn btn-ghost btn-sm">Cerrar sesión</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="section dashboard-section">
+      <div class="container">
+        <!-- Cabecera -->
+        <div class="dashboard-header">
+          <div>
+            <h1 class="page-title">Panel de turnos</h1>
+            <p class="page-subtitle">
+              Mirá todos los turnos de tu barbería en tiempo real y filtralos por fecha o sucursal.
+            </p>
+          </div>
+
+          <div class="dashboard-filters">
+            <label class="field">
+              <span class="field-label">Barbería</span>
+              <select id="filterBarbershop" class="input">
+                <option value="">Todas</option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span class="field-label">Fecha</span>
+              <input id="filterDate" type="date" class="input" />
+            </label>
+
+            <button id="clearFilters" class="btn btn-ghost btn-sm">
+              Limpiar filtros
+            </button>
+          </div>
+        </div>
+
+        <!-- Resumen de stats -->
+        <div class="dashboard-summary">
+          <div class="card stat-card">
+            <div class="card-title">Turnos hoy</div>
+            <span id="statToday" class="stat-number">0</span>
+            <span class="stat-label">Clientes agendados para hoy</span>
+          </div>
+
+          <div class="card stat-card">
+            <div class="card-title">Próximos 7 días</div>
+            <span id="statNext7" class="stat-number">0</span>
+            <span class="stat-label">Turnos en la próxima semana</span>
+          </div>
+
+          <div class="card stat-card">
+            <div class="card-title">Total de turnos</div>
+            <span id="statTotal" class="stat-number">0</span>
+            <span class="stat-label">Histórico en la base de datos</span>
+          </div>
+        </div>
+
+        <!-- Grid principal -->
+        <div class="dashboard-grid">
+          <!-- Tabla de turnos -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">Turnos</h2>
+                <p class="card-subtitle">
+                  Lista de turnos ordenados por fecha y hora.
+                </p>
+              </div>
+              <span id="turnosCount" class="badge-soft">0 turnos</span>
+            </div>
+
+            <div class="table-wrapper">
+              <table class="dashboard-table">
+                <thead>
+                  <tr>
+                    <th>Fecha</th>
+                    <th>Hora</th>
+                    <th>Cliente</th>
+                    <th>Servicio</th>
+                    <th>Barbería</th>
+                    <th>Teléfono</th>
+                    <th>Creado</th>
+                  </tr>
+                </thead>
+                <tbody id="appointmentsBody">
+                  <tr>
+                    <td colspan="7" class="table-empty">
+                      Cargando turnos...
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Lado derecho: mini resumen -->
+          <div class="card side-card">
+            <h2 class="card-title">Hoy en la agenda</h2>
+            <p class="card-subtitle">
+              Próximos turnos de hoy (ordenados por horario).
+            </p>
+
+            <ul id="todayList" class="today-list">
+              <li class="table-empty">Sin turnos para hoy todavía.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="admin.js"></script>
+</body>
+</html>
