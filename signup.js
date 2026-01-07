@@ -35,12 +35,13 @@ form.addEventListener("submit", async (e) => {
       return;
     }
 
-    // Guardamos token para que el admin pueda levantar sesión
-    localStorage.setItem("token", data.token);
-    // por si tu admin.js usa otro nombre:
-    localStorage.setItem("jwt", data.token);
-    localStorage.setItem("authToken", data.token);
-    localStorage.setItem("barbershopId", String(data.barbershop.id));
+   // Guardamos token para que el admin pueda levantar sesión
+localStorage.setItem("token", data.token);
+localStorage.setItem("jwt", data.token);
+localStorage.setItem("authToken", data.token);
+localStorage.setItem("bc_token", data.token);    // 👈 nueva línea a añadir
+localStorage.setItem("barbershopId", String(data.barbershop.id));
+
 
     setMsg("Cuenta creada ✅ Redirigiendo al panel...", true);
 
