@@ -1,5 +1,5 @@
 // admin.js
-const API_BASE = "https://barbercloud.onrender.com"; // tu backend en Render
+const API_BASE = "https://barbercloud.onrender.com";
 
 const $ = (id) => document.getElementById(id);
 
@@ -14,6 +14,9 @@ const loginMsg = $("loginMsg");
 const bsName = $("bsName");
 const bsCity = $("bsCity");
 
+const publicLinkInput = $("publicLink");
+const copyLinkBtn = $("copyLink");
+
 const depositRange = $("depositRange");
 const depositLabel = $("depositLabel");
 const platformFee = $("platformFee");
@@ -22,12 +25,12 @@ const saveMsg = $("saveMsg");
 const btnLogout = $("btnLogout");
 
 function setMsg(el, text, ok = true) {
-  el.textContent = text;
+  el.textContent = text || "";
   el.className = ok ? "muted ok" : "muted bad";
 }
 
 function getToken() {
-  return localStorage.getItem("bc_token");
+  return localStorage.getItem("bc_token") || "";
 }
 
 function setToken(t) {
@@ -36,6 +39,7 @@ function setToken(t) {
 
 function clearToken() {
   localStorage.removeItem("bc_token");
+  localStorage.removeItem("barbershopId");
 }
 
 depositRange.addEventListener("input", () => {
@@ -47,22 +51,53 @@ async function api(path, options = {}) {
   const headers = options.headers || {};
   headers["Content-Type"] = "application/json";
   if (token) headers["Authorization"] = `Bearer ${token}`;
+
   const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || `Error ${res.status}`);
   return data;
 }
 
+// arma y muestra el link público book.html?shop=ID
+function setPublicLink(barbershopId) {
+  if (!publicLinkInput || !barbershopId) return;
+
+  // base = carpeta actual (GitHub Pages)
+  const base = window.location.href.replace(/admin\.html.*$/, "");
+  const link = `${base}book.html?shop=${barbershopId}`;
+  publicLinkInput.value = link;
+
+  if (copyLinkBtn) {
+    copyLinkBtn.onclick = async () => {
+      try {
+        await navigator.clipboard.writeText(link);
+        copyLinkBtn.textContent = "Copiado ✅";
+        setTimeout(() => (copyLinkBtn.textContent = "Copiar link"), 1200);
+      } catch {
+        publicLinkInput.select();
+        document.execCommand("copy");
+      }
+    };
+  }
+}
+
 async function loadSettings() {
+  // Traemos “mi barbería” desde el backend usando token
   const bs = await api("/api/barbershops/mine");
 
-  bsName.textContent = bs.name;
-  bsCity.textContent = bs.city;
+  // Guardamos barbershopId por comodidad
+  localStorage.setItem("barbershopId", String(bs.id));
 
+  bsName.textContent = bs.name || "";
+  bsCity.textContent = bs.city || "";
+
+  // Slider + fee
   depositRange.value = bs.defaultDepositPercentage ?? 15;
   depositLabel.textContent = `${depositRange.value}%`;
-
   platformFee.value = bs.platformFee ?? 200;
+
+  // Link público
+  setPublicLink(bs.id);
 
   loginBox.style.display = "none";
   settingsBox.style.display = "block";
@@ -75,10 +110,15 @@ btnLogin.addEventListener("click", async () => {
 
     const data = await api("/api/auth/login", {
       method: "POST",
-      body: JSON.stringify({ email: email.value.trim(), password: password.value })
+      body: JSON.stringify({
+        email: email.value.trim(),
+        password: password.value
+      }),
     });
 
+    // Guardamos token
     setToken(data.token);
+
     setMsg(loginMsg, "OK ✅", true);
     await loadSettings();
   } catch (e) {
@@ -113,7 +153,7 @@ btnLogout.addEventListener("click", () => {
   setMsg(loginMsg, "Sesión cerrada.", true);
 });
 
-// Auto-load si ya hay token
+// Auto-load si ya hay token guardado
 (async function init() {
   if (getToken()) {
     try {

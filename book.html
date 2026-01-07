@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Reservar turno - BarberCloud</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="page-wrap">
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo">B</div>
+        <div>
+          <div class="brand-title" id="shopTitle">Cargando barbería...</div>
+          <div class="brand-sub" id="shopSub">Reservá tu turno online</div>
+        </div>
+      </div>
+      <a class="btn-ghost" href="./index.html">Volver</a>
+    </header>
+
+    <main class="card">
+      <h2>Reservar turno</h2>
+      <p class="muted" id="shopInfo"></p>
+
+      <div id="err" class="muted" style="color:#ff6b6b; margin: 10px 0;"></div>
+
+      <form id="form">
+        <label>Servicio</label>
+        <select id="serviceSelect" required></select>
+
+        <div class="grid2">
+          <div>
+            <label>Fecha</label>
+            <input type="date" id="date" required />
+          </div>
+          <div>
+            <label>Hora</label>
+            <input type="time" id="time" required />
+          </div>
+        </div>
+
+        <label>Nombre</label>
+        <input id="customerName" placeholder="Tu nombre" required />
+
+        <label>Teléfono</label>
+        <input id="customerPhone" placeholder="3534..." required />
+
+        <button class="btn-primary" type="submit" id="btn">
+          Confirmar reserva
+        </button>
+
+        <div id="pricingBox" class="muted" style="margin-top:12px; display:none;"></div>
+      </form>
+    </main>
+  </div>
+
+  <script src="./book.js"></script>
+</body>
+</html>

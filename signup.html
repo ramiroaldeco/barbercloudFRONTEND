@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>BarberCloud - Crear cuenta</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="auth-wrap">
+    <div class="auth-card">
+      <h1>Crear cuenta gratis</h1>
+      <p class="muted">
+        Creás tu barbería + tu usuario dueño en 1 paso. Después podés ajustar la seña (recomendado 15%) y tu comisión por turno.
+      </p>
+
+      <form id="signupForm">
+        <h3>Datos de la barbería</h3>
+        <label>Nombre de la barbería</label>
+        <input name="shopName" placeholder="Barbería Los Pibes" required />
+
+        <label>Ciudad</label>
+        <input name="city" placeholder="Hernando" required />
+
+        <label>Dirección (opcional)</label>
+        <input name="address" placeholder="San Martín 123" />
+
+        <label>Teléfono (opcional)</label>
+        <input name="phone" placeholder="3534..." />
+
+        <hr />
+
+        <h3>Datos del dueño</h3>
+        <label>Nombre y apellido</label>
+        <input name="ownerName" placeholder="Juan Pérez" required />
+
+        <label>Email</label>
+        <input name="email" type="email" placeholder="juan@barberia.com" required />
+
+        <label>Contraseña</label>
+        <input name="password" type="password" placeholder="Mínimo 6 caracteres" required />
+
+        <button class="btn-primary" type="submit" id="btnCreate">
+          Crear cuenta
+        </button>
+
+        <p id="msg" class="muted" style="margin-top:12px;"></p>
+        <p class="muted" style="margin-top:10px;">
+          ¿Ya tenés cuenta? <a href="./admin.html">Ingresar al panel</a>
+        </p>
+      </form>
+    </div>
+  </div>
+
+  <script src="./signup.js"></script>
+</body>
+</html>
