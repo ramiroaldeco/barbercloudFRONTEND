@@ -1,5 +1,5 @@
 // Usamos siempre la API online en Render
-const API_URL = 'https://barbercloud.onrender.com/api';
+fetch(`${API_BASE}/barbershops`)
 
 async function loadBarbershops() {
   try {
