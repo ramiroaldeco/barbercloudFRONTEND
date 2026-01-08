@@ -1,5 +1,5 @@
 // admin.js
-const API_BASE = "https://barbercloud.onrender.com";
+// ❌ NO definir API_BASE acá (viene de config.js, que ya incluye /api)
 
 const $ = (id) => document.getElementById(id);
 
@@ -48,8 +48,10 @@ depositRange.addEventListener("input", () => {
 
 async function api(path, options = {}) {
   const token = getToken();
-  const headers = options.headers || {};
-  headers["Content-Type"] = "application/json";
+  const headers = { ...(options.headers || {}) };
+
+  // Seteamos JSON solo si no te pasaron ya otro content-type
+  if (!headers["Content-Type"]) headers["Content-Type"] = "application/json";
   if (token) headers["Authorization"] = `Bearer ${token}`;
 
   const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
@@ -62,7 +64,7 @@ async function api(path, options = {}) {
 function setPublicLink(barbershopId) {
   if (!publicLinkInput || !barbershopId) return;
 
-  // base = carpeta actual (GitHub Pages)
+  // base = carpeta actual (GitHub Pages / Vercel / etc.)
   const base = window.location.href.replace(/admin\.html.*$/, "");
   const link = `${base}book.html?shop=${barbershopId}`;
   publicLinkInput.value = link;
@@ -82,21 +84,18 @@ function setPublicLink(barbershopId) {
 }
 
 async function loadSettings() {
-  // Traemos “mi barbería” desde el backend usando token
-  const bs = await api("/api/barbershops/mine");
+  // ✅ OJO: sin /api acá porque API_BASE ya lo tiene incluido
+  const bs = await api("/barbershops/mine");
 
-  // Guardamos barbershopId por comodidad
   localStorage.setItem("barbershopId", String(bs.id));
 
   bsName.textContent = bs.name || "";
   bsCity.textContent = bs.city || "";
 
-  // Slider + fee
   depositRange.value = bs.defaultDepositPercentage ?? 15;
   depositLabel.textContent = `${depositRange.value}%`;
   platformFee.value = bs.platformFee ?? 200;
 
-  // Link público
   setPublicLink(bs.id);
 
   loginBox.style.display = "none";
@@ -108,15 +107,15 @@ btnLogin.addEventListener("click", async () => {
   try {
     setMsg(loginMsg, "Ingresando...", true);
 
-    const data = await api("/api/auth/login", {
+    // ✅ sin /api
+    const data = await api("/auth/login", {
       method: "POST",
       body: JSON.stringify({
         email: email.value.trim(),
-        password: password.value
+        password: password.value,
       }),
     });
 
-    // Guardamos token
     setToken(data.token);
 
     setMsg(loginMsg, "OK ✅", true);
@@ -135,7 +134,8 @@ btnSave.addEventListener("click", async () => {
       platformFee: Number(platformFee.value),
     };
 
-    await api("/api/barbershops/mine/settings", {
+    // ✅ sin /api
+    await api("/barbershops/mine/settings", {
       method: "PUT",
       body: JSON.stringify(body),
     });
@@ -160,6 +160,8 @@ btnLogout.addEventListener("click", () => {
       await loadSettings();
     } catch (e) {
       clearToken();
+      // opcional: mostrar error amigable
+      setMsg(loginMsg, "Tu sesión venció. Iniciá sesión de nuevo.", false);
     }
   }
 })();
