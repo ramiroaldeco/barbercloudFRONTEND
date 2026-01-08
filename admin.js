@@ -19,7 +19,6 @@ const copyLinkBtn = $("copyLink");
 
 const depositRange = $("depositRange");
 const depositLabel = $("depositLabel");
-const platformFee = $("platformFee");
 const btnSave = $("btnSave");
 const saveMsg = $("saveMsg");
 const btnLogout = $("btnLogout");
@@ -94,7 +93,6 @@ async function loadSettings() {
 
   depositRange.value = bs.defaultDepositPercentage ?? 15;
   depositLabel.textContent = `${depositRange.value}%`;
-  platformFee.value = bs.platformFee ?? 200;
 
   setPublicLink(bs.id);
 
@@ -129,9 +127,9 @@ btnSave.addEventListener("click", async () => {
   try {
     setMsg(saveMsg, "Guardando...", true);
 
+    // ✅ SOLO enviamos defaultDepositPercentage
     const body = {
       defaultDepositPercentage: Number(depositRange.value),
-      platformFee: Number(platformFee.value),
     };
 
     // ✅ sin /api
