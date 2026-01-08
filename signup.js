@@ -1,5 +1,5 @@
 // signup.js
-const API_BASE = "https://barbercloud.onrender.com";
+// ❌ NO definir API_BASE acá (viene de config.js)
 
 const form = document.getElementById("signupForm");
 const msg = document.getElementById("msg");
@@ -20,7 +20,7 @@ form.addEventListener("submit", async (e) => {
   const payload = Object.fromEntries(fd.entries());
 
   try {
-    const r = await fetch(`${API_BASE}/api/onboarding/signup`, {
+    const r = await fetch(`${API_BASE}/onboarding/signup`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
@@ -35,13 +35,12 @@ form.addEventListener("submit", async (e) => {
       return;
     }
 
-   // Guardamos token para que el admin pueda levantar sesión
-localStorage.setItem("token", data.token);
-localStorage.setItem("jwt", data.token);
-localStorage.setItem("authToken", data.token);
-localStorage.setItem("bc_token", data.token);    // 👈 nueva línea a añadir
-localStorage.setItem("barbershopId", String(data.barbershop.id));
-
+    // Guardamos token para que el admin pueda levantar sesión
+    localStorage.setItem("token", data.token);
+    localStorage.setItem("jwt", data.token);
+    localStorage.setItem("authToken", data.token);
+    localStorage.setItem("bc_token", data.token);
+    localStorage.setItem("barbershopId", String(data.barbershop.id));
 
     setMsg("Cuenta creada ✅ Redirigiendo al panel...", true);
 
