@@ -1,5 +1,5 @@
 // book.js
-const API_BASE = "https://barbercloud.onrender.com";
+// ❌ NO definir API_BASE acá (viene de config.js, que ya incluye /api)
 
 const qs = new URLSearchParams(window.location.search);
 const barbershopId = Number(qs.get("shop"));
@@ -31,28 +31,36 @@ async function loadBarbershop() {
   }
 
   // Como quizá no tengas GET /barbershops/:id, levantamos la lista y filtramos.
-  const r = await fetch(`${API_BASE}/api/barbershops`);
-  const data = await r.json();
+  const r = await fetch(`${API_BASE}/barbershops`);
+  const data = await r.json().catch(() => null);
 
-  if (!r.ok || !Array.isArray(data)) throw new Error("No se pudo cargar la barbería.");
+  if (!r.ok || !Array.isArray(data)) {
+    throw new Error(data?.error || "No se pudo cargar la barbería.");
+  }
 
-  const shop = data.find(s => s.id === barbershopId);
+  const shop = data.find((s) => Number(s.id) === barbershopId);
   if (!shop) throw new Error("No existe esa barbería (shopId inválido).");
 
-  shopTitle.textContent = shop.name;
+  shopTitle.textContent = shop.name || "Barbería";
   shopSub.textContent = shop.city || "";
-  shopInfo.textContent = `${shop.name} · ${shop.city}${shop.address ? " · " + shop.address : ""}`;
+  shopInfo.textContent = `${shop.name || ""}${shop.city ? " · " + shop.city : ""}${
+    shop.address ? " · " + shop.address : ""
+  }`;
 
   return shop;
 }
 
 async function loadServices() {
-  const r = await fetch(`${API_BASE}/api/services?barbershopId=${barbershopId}`);
-  const data = await r.json();
+  const r = await fetch(`${API_BASE}/services?barbershopId=${barbershopId}`);
+  const data = await r.json().catch(() => null);
 
-  if (!r.ok || !Array.isArray(data)) throw new Error("No se pudieron cargar los servicios.");
+  if (!r.ok || !Array.isArray(data)) {
+    throw new Error(data?.error || "No se pudieron cargar los servicios.");
+  }
 
   serviceSelect.innerHTML = "";
+  serviceSelect.disabled = false;
+
   for (const s of data) {
     const opt = document.createElement("option");
     opt.value = s.id;
@@ -72,15 +80,15 @@ async function loadServices() {
 
 function minTodayISO() {
   const d = new Date();
-  d.setHours(0,0,0,0);
-  return d.toISOString().slice(0,10);
+  d.setHours(0, 0, 0, 0);
+  return d.toISOString().slice(0, 10);
 }
 
 (async function init() {
   try {
     setErr("");
     const dateInput = document.getElementById("date");
-    dateInput.min = minTodayISO();
+    if (dateInput) dateInput.min = minTodayISO();
 
     await loadBarbershop();
     await loadServices();
@@ -111,7 +119,7 @@ form.addEventListener("submit", async (e) => {
   btn.textContent = "Reservando...";
 
   try {
-    const r = await fetch(`${API_BASE}/api/appointments`, {
+    const r = await fetch(`${API_BASE}/appointments`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -124,7 +132,7 @@ form.addEventListener("submit", async (e) => {
       }),
     });
 
-    const data = await r.json();
+    const data = await r.json().catch(() => ({}));
 
     if (!r.ok || !data) {
       setErr(data?.error || "No se pudo reservar.");
@@ -133,7 +141,7 @@ form.addEventListener("submit", async (e) => {
       return;
     }
 
-    // Mostramos pricing que ya está funcionando en tu API
+    // Mostramos pricing (según campos que devuelva tu API)
     const depPct = data.depositPercentageAtBooking ?? data.depositPercentage ?? 0;
     const depAmt = data.depositAmount ?? 0;
     const fee = data.platformFee ?? 0;
