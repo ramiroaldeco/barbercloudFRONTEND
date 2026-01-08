@@ -3,37 +3,32 @@ const API_URL = 'https://barbercloud.onrender.com/api';
 
 async function loadBarbershops() {
   try {
-    const res = await fetch(`${API_URL}/barbershops`);
-    if (!res.ok) {
-      throw new Error('Error al cargar barberías');
-    }
-
-    const data = await res.json();
-    const select = document.getElementById('barbershopSelect');
-    select.innerHTML = '';
-
-    if (!Array.isArray(data) || data.length === 0) {
-      const option = document.createElement('option');
-      option.value = '';
-      option.textContent = 'No hay barberías disponibles';
-      select.appendChild(option);
+    const resp = await fetch(`${API_BASE}/barbershops`);
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.error || "API error");
+    barbershopSelect.innerHTML = "";
+    if (data.length === 0) {
+      const opt = document.createElement("option");
+      opt.textContent = "No hay barberías disponibles";
+      opt.disabled = true;
+      opt.selected = true;
+      barbershopSelect.appendChild(opt);
+      serviceSelect.innerHTML = "";
       return;
     }
-
-    data.forEach((shop) => {
-      const option = document.createElement('option');
-      option.value = shop.id;
-      option.textContent = `${shop.name} - ${shop.city}`;
-      select.appendChild(option);
+    data.forEach(bs => {
+      const opt = document.createElement("option");
+      opt.value = bs.id;
+      opt.textContent = bs.name;
+      barbershopSelect.appendChild(opt);
     });
-
-    // Dispara carga de servicios para la primera barbería
+    // Carga servicios de la primera barbería
     loadServices(data[0].id);
-  } catch (err) {
-    console.error(err);
-    alert('No se pudieron cargar las barberías. Revisá la API.');
+  } catch (e) {
+    alert(e.message || "No se pudieron cargar las barberías.");
   }
 }
+
 
 async function loadServices(barbershopId) {
   try {
