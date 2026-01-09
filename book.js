@@ -1,8 +1,26 @@
 // book.js
 // ❌ NO definir API_BASE acá (viene de config.js, que ya incluye /api)
 
-const qs = new URLSearchParams(window.location.search);
-const barbershopId = Number(qs.get("shop"));
+// ✅ Paso 5 — Frontend: soportar slug en la URL (y mantener ?shop=ID)
+async function resolveShopId() {
+  // 1) Si viene ?shop=ID, usamos eso (compatibilidad)
+  const params = new URLSearchParams(window.location.search);
+  const shopParam = params.get("shop");
+  if (shopParam) return Number(shopParam);
+
+  // 2) Si no, usamos el slug: /joacobarber
+  const parts = window.location.pathname.split("/").filter(Boolean);
+  const slug = parts[0]; // "joacobarber"
+  if (!slug) return null;
+
+  const r = await fetch(`${API_BASE}/barbershops/slug/${encodeURIComponent(slug)}`);
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(data.error || "No se pudo resolver la barbería");
+
+  return Number(data.id);
+}
+
+let barbershopId = null;
 
 const shopTitle = document.getElementById("shopTitle");
 const shopSub = document.getElementById("shopSub");
@@ -25,7 +43,7 @@ function money(n) {
 
 async function loadBarbershop() {
   if (!barbershopId || Number.isNaN(barbershopId)) {
-    setErr("Falta el parámetro ?shop=ID en la URL. Ej: book.html?shop=1");
+    setErr("No se encontró barbería en la URL. Usá ?shop=ID o /slug");
     shopTitle.textContent = "Barbería no encontrada";
     return null;
   }
@@ -84,12 +102,17 @@ function minTodayISO() {
   return d.toISOString().slice(0, 10);
 }
 
+// ✅ init: primero resolvemos barbershopId (por ?shop o por slug)
 (async function init() {
   try {
     setErr("");
     const dateInput = document.getElementById("date");
     if (dateInput) dateInput.min = minTodayISO();
 
+    barbershopId = await resolveShopId();
+    if (!barbershopId) throw new Error("No se encontró barbería en la URL");
+
+    // a partir de acá tu código normal:
     await loadBarbershop();
     await loadServices();
   } catch (e) {
@@ -145,7 +168,7 @@ form.addEventListener("submit", async (e) => {
     const depPct = data.depositPercentageAtBooking ?? data.depositPercentage ?? 0;
     const depAmt = data.depositAmount ?? 0;
     const fee = data.platformFee ?? 0;
-    const total = data.totalToPay ?? (depAmt + fee);
+    const total = data.totalToPay ?? depAmt + fee;
 
     pricingBox.style.display = "block";
     pricingBox.innerHTML = `
