@@ -59,19 +59,32 @@ async function api(path, options = {}) {
   return data;
 }
 
-// arma y muestra el link público book.html?shop=ID
-function setPublicLink(barbershopId) {
-  if (!publicLinkInput || !barbershopId) return;
+/**
+ * ✅ PASO 3: Link lindo con slug (sin book.html?shop=)
+ * - Si existe bs.slug => https://tu-dominio.com/slug
+ * - Si NO existe (barbería vieja) => fallback book.html?shop=ID
+ */
+function setPublicLink(barbershop) {
+  if (!publicLinkInput || !barbershop) return;
 
-  // base = carpeta actual (GitHub Pages / Vercel / etc.)
-  const base = window.location.href.replace(/admin\.html.*$/, "");
-  const link = `${base}book.html?shop=${barbershopId}`;
-  publicLinkInput.value = link;
+  const PUBLIC_ORIGIN = window.location.origin; // en Vercel: https://barberscloud.vercel.app
+
+  const slug = barbershop.slug;
+  let publicLink = "";
+
+  if (slug) {
+    publicLink = `${PUBLIC_ORIGIN}/${slug}`;
+  } else {
+    // fallback por si alguna barber vieja no tiene slug
+    publicLink = `${PUBLIC_ORIGIN}/book.html?shop=${barbershop.id}`;
+  }
+
+  publicLinkInput.value = publicLink;
 
   if (copyLinkBtn) {
     copyLinkBtn.onclick = async () => {
       try {
-        await navigator.clipboard.writeText(link);
+        await navigator.clipboard.writeText(publicLink);
         copyLinkBtn.textContent = "Copiado ✅";
         setTimeout(() => (copyLinkBtn.textContent = "Copiar link"), 1200);
       } catch {
@@ -94,7 +107,8 @@ async function loadSettings() {
   depositRange.value = bs.defaultDepositPercentage ?? 15;
   depositLabel.textContent = `${depositRange.value}%`;
 
-  setPublicLink(bs.id);
+  // ✅ ahora pasa el objeto completo para usar bs.slug si existe
+  setPublicLink(bs);
 
   loginBox.style.display = "none";
   settingsBox.style.display = "block";
