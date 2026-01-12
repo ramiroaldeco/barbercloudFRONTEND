@@ -24,6 +24,13 @@
     .linkbox input { flex:1; }
     .linkbox button { width:160px; background:#333; }
   </style>
+  <script>
+  // Si querés entrar al legacy: admin.html?legacy=1
+  const params = new URLSearchParams(location.search);
+  if (!params.has("legacy")) {
+    window.location.replace("./admin_v2.html#/agenda");
+  }
+</script>
 </head>
 <body>
 
