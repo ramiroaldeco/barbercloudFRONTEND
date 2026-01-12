@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>BarberCloud Admin</title>
+
+  <link rel="stylesheet" href="./admin_v2.css" />
+</head>
+<body>
+  <div class="app">
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="avatar" id="shopAvatar">B</div>
+        <div class="brand-text">
+          <div class="shop-name" id="shopName">BarberCloud</div>
+          <div class="shop-sub" id="shopCity">Admin</div>
+        </div>
+      </div>
+
+      <div class="progress-card">
+        <div class="progress-title">Configuración de empresa</div>
+        <div class="progress-row">
+          <div class="progress-bar"><span id="setupBar"></span></div>
+          <div class="progress-pct" id="setupPct">0%</div>
+        </div>
+      </div>
+
+      <button class="primary-btn" id="btnQuickAdd">+ Agregar turno</button>
+
+      <nav class="nav">
+        <a href="#/agenda" class="nav-item" data-route="agenda">Agenda</a>
+        <a href="#/clientes" class="nav-item" data-route="clientes">Clientes</a>
+        <a href="#/servicios" class="nav-item" data-route="servicios">Servicios</a>
+        <a href="#/horarios" class="nav-item" data-route="horarios">Plantilla Horaria</a>
+        <a href="#/config" class="nav-item" data-route="config">Configuración</a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <button class="ghost-btn" id="btnLogout">Salir</button>
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="main">
+      <header class="topbar">
+        <div class="top-left">
+          <h1 id="pageTitle">Agenda</h1>
+          <p class="muted" id="pageSubtitle">Gestioná tus turnos</p>
+        </div>
+
+        <div class="top-right">
+          <button class="icon-btn" title="Recargar" id="btnReload">⟳</button>
+          <button class="icon-btn" title="Menú" id="btnMenu">☰</button>
+        </div>
+      </header>
+
+      <section class="content">
+        <!-- VISTA: AGENDA -->
+        <div class="view" id="view-agenda">
+          <div class="card">
+            <div class="card-head">
+              <div class="tabs">
+                <button class="tab active" data-tab="list">Lista</button>
+                <button class="tab" data-tab="calendar">Calendario</button>
+              </div>
+
+              <div class="filters">
+                <input class="input" id="qAppointments" placeholder="Buscar por nombre o teléfono..." />
+                <select class="input" id="statusFilter">
+                  <option value="">Todos</option>
+                  <option value="pending">Pendientes</option>
+                  <option value="confirmed">Confirmados</option>
+                  <option value="canceled">Cancelados</option>
+                </select>
+                <input class="input" type="date" id="fromDate" />
+                <input class="input" type="date" id="toDate" />
+                <button class="btn" id="btnApplyFilters">Filtrar</button>
+              </div>
+            </div>
+
+            <div class="card-body">
+              <div class="table-wrap">
+                <table class="table" id="appointmentsTable">
+                  <thead>
+                    <tr>
+                      <th>Fecha</th>
+                      <th>Hora</th>
+                      <th>Servicio</th>
+                      <th>Cliente</th>
+                      <th>Teléfono</th>
+                      <th>Estado</th>
+                      <th class="right">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+
+              <div class="empty" id="appointmentsEmpty" style="display:none;">
+                No tenés turnos para este rango.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- VISTA: SERVICIOS -->
+        <div class="view" id="view-servicios" style="display:none;">
+          <div class="card">
+            <div class="card-head">
+              <div>
+                <h2>Servicios</h2>
+                <p class="muted">Gestioná tus servicios (precio, duración, seña)</p>
+              </div>
+              <div class="actions">
+                <button class="btn" id="btnNewService">+ Nuevo servicio</button>
+              </div>
+            </div>
+
+            <div class="card-body" id="servicesGrid" style="display:grid; gap:12px;"></div>
+          </div>
+        </div>
+
+        <!-- VISTA: HORARIOS -->
+        <div class="view" id="view-horarios" style="display:none;">
+          <div class="card">
+            <div class="card-head">
+              <div>
+                <h2>Plantilla Horaria</h2>
+                <p class="muted">Definí tus horarios semanales</p>
+              </div>
+              <div class="actions">
+                <button class="btn" id="btnSaveSchedule">Guardar</button>
+              </div>
+            </div>
+            <div class="card-body" id="scheduleForm">
+              <div class="muted">Acá va la plantilla (la armamos en el próximo paso).</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- VISTA: CONFIG -->
+        <div class="view" id="view-config" style="display:none;">
+          <div class="card">
+            <div class="card-head">
+              <div>
+                <h2>Configuración</h2>
+                <p class="muted">Datos generales de la barbería</p>
+              </div>
+              <div class="actions">
+                <button class="btn" id="btnSaveConfig">Guardar</button>
+              </div>
+            </div>
+            <div class="card-body">
+              <label class="label">Nombre</label>
+              <input class="input" id="cfgName" />
+
+              <label class="label">Ciudad</label>
+              <input class="input" id="cfgCity" />
+
+              <label class="label">Dirección</label>
+              <input class="input" id="cfgAddress" />
+
+              <label class="label">Teléfono</label>
+              <input class="input" id="cfgPhone" />
+
+              <div class="hint">
+                ⚠️ Tu comisión (platform fee) es interna: el dueño NO la ve ni la cambia.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- VISTA: CLIENTES (placeholder) -->
+        <div class="view" id="view-clientes" style="display:none;">
+          <div class="card">
+            <div class="card-head">
+              <div>
+                <h2>Clientes</h2>
+                <p class="muted">Búsqueda + historial</p>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="muted">La armamos después de Agenda + Servicios.</div>
+            </div>
+          </div>
+        </div>
+
+      </section>
+    </main>
+  </div>
+
+  <script src="./admin_v2.js"></script>
+</body>
+</html>
