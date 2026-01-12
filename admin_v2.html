@@ -3,11 +3,58 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>BarberCloud Admin</title>
+  <title>BarberCloud Admin v2</title>
 
   <link rel="stylesheet" href="./admin_v2.css" />
 </head>
 <body>
+  <!-- LOGIN OVERLAY -->
+  <div class="modal-backdrop" id="loginBackdrop" style="display:none;">
+    <div class="modal">
+      <div class="modal-head">
+        <div>
+          <h2 style="margin:0">Entrar al Admin</h2>
+          <p class="muted" style="margin:6px 0 0">Usá tu cuenta dueña</p>
+        </div>
+      </div>
+
+      <div class="modal-body">
+        <label class="label">Email</label>
+        <input class="input" id="loginEmail" placeholder="tu@email.com" />
+
+        <label class="label">Contraseña</label>
+        <input class="input" id="loginPassword" type="password" placeholder="••••••••" />
+
+        <div class="row" style="margin-top:12px; gap:10px;">
+          <button class="btn" id="btnLogin">Entrar</button>
+          <button class="ghost-btn" id="btnLoginClose">Cerrar</button>
+        </div>
+
+        <div class="hint" id="loginError" style="display:none;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL GENERICO -->
+  <div class="modal-backdrop" id="modalBackdrop" style="display:none;">
+    <div class="modal">
+      <div class="modal-head">
+        <div>
+          <h2 id="modalTitle" style="margin:0">Modal</h2>
+          <p class="muted" id="modalSubtitle" style="margin:6px 0 0"></p>
+        </div>
+        <button class="icon-btn" id="btnModalClose" title="Cerrar">✕</button>
+      </div>
+
+      <div class="modal-body" id="modalBody"></div>
+
+      <div class="modal-foot">
+        <button class="ghost-btn" id="btnModalCancel">Cancelar</button>
+        <button class="btn" id="btnModalOk">Guardar</button>
+      </div>
+    </div>
+  </div>
+
   <div class="app">
     <!-- SIDEBAR -->
     <aside class="sidebar">
@@ -52,12 +99,12 @@
 
         <div class="top-right">
           <button class="icon-btn" title="Recargar" id="btnReload">⟳</button>
-          <button class="icon-btn" title="Menú" id="btnMenu">☰</button>
+          <button class="icon-btn" title="Login" id="btnOpenLogin">🔑</button>
         </div>
       </header>
 
       <section class="content">
-        <!-- VISTA: AGENDA -->
+        <!-- AGENDA -->
         <div class="view" id="view-agenda">
           <div class="card">
             <div class="card-head">
@@ -105,7 +152,7 @@
           </div>
         </div>
 
-        <!-- VISTA: SERVICIOS -->
+        <!-- SERVICIOS -->
         <div class="view" id="view-servicios" style="display:none;">
           <div class="card">
             <div class="card-head">
@@ -122,36 +169,37 @@
           </div>
         </div>
 
-        <!-- VISTA: HORARIOS -->
+        <!-- HORARIOS -->
         <div class="view" id="view-horarios" style="display:none;">
           <div class="card">
             <div class="card-head">
               <div>
                 <h2>Plantilla Horaria</h2>
-                <p class="muted">Definí tus horarios semanales</p>
+                <p class="muted">Scaffolding primero (lo implementamos después)</p>
               </div>
               <div class="actions">
                 <button class="btn" id="btnSaveSchedule">Guardar</button>
               </div>
             </div>
             <div class="card-body" id="scheduleForm">
-              <div class="muted">Acá va la plantilla (la armamos en el próximo paso).</div>
+              <div class="muted">Acá va la plantilla (siguiente paso).</div>
             </div>
           </div>
         </div>
 
-        <!-- VISTA: CONFIG -->
+        <!-- CONFIG -->
         <div class="view" id="view-config" style="display:none;">
           <div class="card">
             <div class="card-head">
               <div>
                 <h2>Configuración</h2>
-                <p class="muted">Datos generales de la barbería</p>
+                <p class="muted">Datos generales + seña por defecto</p>
               </div>
               <div class="actions">
                 <button class="btn" id="btnSaveConfig">Guardar</button>
               </div>
             </div>
+
             <div class="card-body">
               <label class="label">Nombre</label>
               <input class="input" id="cfgName" />
@@ -165,20 +213,26 @@
               <label class="label">Teléfono</label>
               <input class="input" id="cfgPhone" />
 
+              <label class="label">Slug (tu link público)</label>
+              <input class="input" id="cfgSlug" placeholder="barberrami" />
+
+              <label class="label">Seña por defecto (%)</label>
+              <input class="input" id="cfgDepositPct" type="number" min="0" max="100" step="1" />
+
               <div class="hint">
-                ⚠️ Tu comisión (platform fee) es interna: el dueño NO la ve ni la cambia.
+                ⚠️ La comisión fija (platformFee) es interna: la barbería NO la ve ni la puede cambiar.
               </div>
             </div>
           </div>
         </div>
 
-        <!-- VISTA: CLIENTES (placeholder) -->
+        <!-- CLIENTES -->
         <div class="view" id="view-clientes" style="display:none;">
           <div class="card">
             <div class="card-head">
               <div>
                 <h2>Clientes</h2>
-                <p class="muted">Búsqueda + historial</p>
+                <p class="muted">Placeholder por ahora</p>
               </div>
             </div>
             <div class="card-body">
@@ -191,6 +245,7 @@
     </main>
   </div>
 
+  <script src="./config.js"></script>
   <script src="./admin_v2.js"></script>
 </body>
 </html>
