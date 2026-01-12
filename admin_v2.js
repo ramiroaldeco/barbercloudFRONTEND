@@ -12,6 +12,8 @@ function getToken() {
 }
 function setToken(t) {
   localStorage.setItem("bc_token", t);
+  // compat (por si alguna parte usa "token")
+  localStorage.setItem("token", t);
 }
 function clearToken() {
   for (const k of TOKEN_KEYS) localStorage.removeItem(k);
@@ -116,6 +118,77 @@ async function safeText(res) {
   try { return await res.text(); } catch { return "Error"; }
 }
 
+// ---- toast (simple, pro, sin romper CSS) ----
+function ensureToastHost() {
+  let host = document.getElementById("toastHost");
+  if (host) return host;
+
+  host = document.createElement("div");
+  host.id = "toastHost";
+  host.style.position = "fixed";
+  host.style.right = "16px";
+  host.style.bottom = "16px";
+  host.style.display = "grid";
+  host.style.gap = "10px";
+  host.style.zIndex = "9999";
+  document.body.appendChild(host);
+  return host;
+}
+
+function toast(text, type = "info") {
+  const host = ensureToastHost();
+
+  const t = document.createElement("div");
+  t.style.padding = "10px 12px";
+  t.style.borderRadius = "14px";
+  t.style.border = "1px solid rgba(255,255,255,.10)";
+  t.style.background = "rgba(10,14,20,.92)";
+  t.style.color = "rgba(232,238,252,.95)";
+  t.style.boxShadow = "0 12px 30px rgba(0,0,0,.35)";
+  t.style.fontFamily = "system-ui, -apple-system, Segoe UI, Roboto, Arial";
+  t.style.fontSize = "14px";
+  t.style.display = "flex";
+  t.style.gap = "10px";
+  t.style.alignItems = "center";
+  t.style.maxWidth = "360px";
+
+  const dot = document.createElement("span");
+  dot.textContent = "●";
+  dot.style.fontSize = "12px";
+
+  if (type === "ok") dot.style.color = "rgba(39,209,124,.95)";
+  else if (type === "error") dot.style.color = "rgba(255,95,109,.95)";
+  else if (type === "warn") dot.style.color = "rgba(255,204,102,.95)";
+  else dot.style.color = "rgba(47,123,255,.95)";
+
+  const msg = document.createElement("div");
+  msg.textContent = text;
+
+  t.appendChild(dot);
+  t.appendChild(msg);
+
+  host.appendChild(t);
+
+  setTimeout(() => {
+    t.style.opacity = "0";
+    t.style.transform = "translateY(6px)";
+    t.style.transition = "opacity .18s ease, transform .18s ease";
+  }, 2200);
+
+  setTimeout(() => {
+    t.remove();
+  }, 2500);
+}
+
+// ---- debounce ----
+function debounce(fn, ms = 400) {
+  let t = null;
+  return (...args) => {
+    clearTimeout(t);
+    t = setTimeout(() => fn(...args), ms);
+  };
+}
+
 // ---- modal ----
 const modalBackdrop = document.getElementById("modalBackdrop");
 const modalTitle = document.getElementById("modalTitle");
@@ -183,6 +256,7 @@ btnLogin.addEventListener("click", async () => {
 
     setToken(data.token);
     closeLogin();
+    toast("Login OK ✅", "ok");
     await loadShopHeader();
     showView(getRoute());
   } catch (e) {
@@ -193,6 +267,7 @@ btnLogin.addEventListener("click", async () => {
 
 document.getElementById("btnLogout").addEventListener("click", () => {
   clearToken();
+  toast("Sesión cerrada", "info");
   openLogin();
 });
 
@@ -215,9 +290,32 @@ async function loadShopHeader() {
 }
 
 // ---- Agenda ----
+function setDefaultDateRangeIfEmpty() {
+  const fromEl = document.getElementById("fromDate");
+  const toEl = document.getElementById("toDate");
+  if (!fromEl || !toEl) return;
+
+  const from = fromEl.value;
+  const to = toEl.value;
+
+  if (from || to) return;
+
+  const today = new Date();
+  const plus7 = new Date();
+  plus7.setDate(today.getDate() + 7);
+
+  const fmt = (d) => d.toISOString().slice(0, 10);
+
+  fromEl.value = fmt(today);
+  toEl.value = fmt(plus7);
+}
+
 async function loadAppointments() {
   const tbody = document.querySelector("#appointmentsTable tbody");
   const empty = document.getElementById("appointmentsEmpty");
+
+  // ✅ rango por defecto estilo Agendito
+  setDefaultDateRangeIfEmpty();
 
   const q = document.getElementById("qAppointments").value.trim();
   const status = document.getElementById("statusFilter").value;
@@ -273,6 +371,13 @@ function statusBadge(status) {
 
 document.getElementById("btnApplyFilters").addEventListener("click", loadAppointments);
 
+// ✅ filtros reactivos (sin romper tu botón)
+const debouncedReloadAppointments = debounce(loadAppointments, 500);
+document.getElementById("qAppointments").addEventListener("input", debouncedReloadAppointments);
+document.getElementById("statusFilter").addEventListener("change", loadAppointments);
+document.getElementById("fromDate").addEventListener("change", loadAppointments);
+document.getElementById("toDate").addEventListener("change", loadAppointments);
+
 document.querySelector("#appointmentsTable").addEventListener("click", async (e) => {
   const btn = e.target.closest("button");
   if (!btn) return;
@@ -282,11 +387,17 @@ document.querySelector("#appointmentsTable").addEventListener("click", async (e)
   if (!id || !act) return;
 
   try {
-    if (act === "confirm") await apiPut(`/appointments/${id}/status`, { status: "confirmed" });
-    if (act === "cancel") await apiPut(`/appointments/${id}/status`, { status: "canceled" });
+    if (act === "confirm") {
+      await apiPut(`/appointments/${id}/status`, { status: "confirmed" });
+      toast("Turno confirmado ✅", "ok");
+    }
+    if (act === "cancel") {
+      await apiPut(`/appointments/${id}/status`, { status: "canceled" });
+      toast("Turno cancelado", "warn");
+    }
     await loadAppointments();
   } catch (err) {
-    alert("Error: " + err.message);
+    toast("Error: " + err.message, "error");
   }
 });
 
@@ -369,9 +480,10 @@ document.getElementById("btnNewService").addEventListener("click", async () => {
     });
 
     closeModal();
+    toast("Servicio creado ✅", "ok");
     await loadServices();
   } catch (e) {
-    alert("Error: " + e.message);
+    toast("Error: " + e.message, "error");
   }
 });
 
@@ -386,9 +498,10 @@ document.getElementById("servicesGrid").addEventListener("click", async (e) => {
     if (!confirm("¿Seguro que querés borrar este servicio?")) return;
     try {
       await apiDelete(`/services/${delId}`);
+      toast("Servicio borrado", "warn");
       await loadServices();
     } catch (err) {
-      alert("Error: " + err.message);
+      toast("Error: " + err.message, "error");
     }
   }
 
@@ -397,7 +510,7 @@ document.getElementById("servicesGrid").addEventListener("click", async (e) => {
       const services = await apiGet("/services/mine");
       const items = services.items || services || [];
       const s = items.find(x => x.id === editId);
-      if (!s) return alert("No encontré el servicio");
+      if (!s) return toast("No encontré el servicio", "error");
 
       const result = await openModal({
         title: "Editar servicio",
@@ -435,9 +548,10 @@ document.getElementById("servicesGrid").addEventListener("click", async (e) => {
       });
 
       closeModal();
+      toast("Servicio guardado ✅", "ok");
       await loadServices();
     } catch (err) {
-      alert("Error: " + err.message);
+      toast("Error: " + err.message, "error");
     }
   }
 });
@@ -482,9 +596,9 @@ document.getElementById("btnSaveConfig").addEventListener("click", async () => {
     }
 
     await loadShopHeader();
-    alert("Guardado ✅");
+    toast("Guardado ✅", "ok");
   } catch (e) {
-    alert("Error: " + e.message);
+    toast("Error: " + e.message, "error");
   }
 });
 
