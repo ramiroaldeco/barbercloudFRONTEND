@@ -400,6 +400,150 @@ document.querySelector("#appointmentsTable").addEventListener("click", async (e)
     toast("Error: " + err.message, "error");
   }
 });
+// ---- Agregar turno (modal + POST) ----
+function findAddAppointmentButton() {
+  // Intentamos varios IDs posibles (por si en tu HTML lo nombraste distinto)
+  return (
+    document.getElementById("btnAddAppointment") ||
+    document.getElementById("btnAddTurno") ||
+    document.getElementById("btnAdd") ||
+    document.querySelector('[data-action="add-appointment"]') ||
+    // fallback: primer botón que contenga "Agregar turno"
+    Array.from(document.querySelectorAll("button")).find(b =>
+      (b.textContent || "").toLowerCase().includes("agregar turno")
+    )
+  );
+}
+
+async function openCreateAppointmentModal() {
+  // Traemos servicios para el select
+  let services = [];
+  try {
+    const data = await apiGet("/services/mine");
+    services = data.items || data || [];
+  } catch (e) {
+    toast("No pude cargar servicios: " + e.message, "error");
+    return;
+  }
+
+  if (!services.length) {
+    toast("Primero creá al menos 1 servicio.", "warn");
+    // opcional: te mando directo a servicios
+    location.hash = "#/servicios";
+    return;
+  }
+
+  const today = new Date().toISOString().slice(0, 10);
+
+  const bodyHtml = `
+    <div style="display:grid; gap:10px">
+      <label class="label">Servicio</label>
+      <select class="input" id="aptService">
+        ${services.map(s => `<option value="${s.id}">${escapeHtml(s.name)} - $${escapeHtml(String(s.price))}</option>`).join("")}
+      </select>
+
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px">
+        <div>
+          <label class="label">Fecha</label>
+          <input class="input" id="aptDate" type="date" value="${today}" />
+        </div>
+        <div>
+          <label class="label">Hora</label>
+          <input class="input" id="aptTime" type="time" value="10:00" />
+        </div>
+      </div>
+
+      <label class="label">Cliente</label>
+      <input class="input" id="aptCustomerName" placeholder="Nombre y apellido" />
+
+      <label class="label">Teléfono</label>
+      <input class="input" id="aptCustomerPhone" placeholder="3534..." />
+
+      <label class="label">Estado</label>
+      <select class="input" id="aptStatus">
+        <option value="pending">Pendiente</option>
+        <option value="confirmed">Confirmado</option>
+        <option value="canceled">Cancelado</option>
+      </select>
+
+      <div class="muted" style="margin-top:6px">
+        Tip: podés crear “Confirmado” si es un turno manual ya cerrado.
+      </div>
+    </div>
+  `;
+
+  const result = await openModal({
+    title: "Nuevo turno",
+    subtitle: "Cargá un turno manual en tu agenda",
+    bodyHtml,
+    okText: "Crear turno",
+  });
+
+  if (!result?.ok) return;
+
+  try {
+    const serviceId = document.getElementById("aptService").value;
+    const date = document.getElementById("aptDate").value;
+    const time = document.getElementById("aptTime").value;
+    const customerName = document.getElementById("aptCustomerName").value.trim();
+    const customerPhone = document.getElementById("aptCustomerPhone").value.trim();
+    const status = document.getElementById("aptStatus").value;
+
+    if (!serviceId) throw new Error("Elegí un servicio");
+    if (!date) throw new Error("Elegí una fecha");
+    if (!time) throw new Error("Elegí una hora");
+    if (!customerName) throw new Error("Poné el nombre del cliente");
+
+    // Payload “standard”
+    const payload = {
+      serviceId,
+      date,
+      time,
+      customerName,
+      customerPhone: customerPhone || null,
+      status: status || "pending",
+    };
+
+    await apiPost("/appointments", payload);
+
+    closeModal();
+    toast("Turno creado ✅", "ok");
+
+    // Ajusto filtros para que se vea seguro (incluimos esa fecha)
+    const fromEl = document.getElementById("fromDate");
+    const toEl = document.getElementById("toDate");
+    if (fromEl && toEl) {
+      if (!fromEl.value || fromEl.value > date) fromEl.value = date;
+      if (!toEl.value || toEl.value < date) toEl.value = date;
+    }
+
+    await loadAppointments();
+  } catch (e) {
+    toast("Error: " + e.message, "error");
+  }
+}
+
+// Hook del botón
+(function wireAddAppointmentButton() {
+  const btn = findAddAppointmentButton();
+  if (!btn) {
+    console.warn("No encontré el botón '+ Agregar turno'. Poné id='btnAddAppointment' para engancharlo.");
+    return;
+  }
+  // Evitar doble binding si recargás scripts
+  if (btn.dataset.boundAdd === "1") return;
+  btn.dataset.boundAdd = "1";
+
+  btn.addEventListener("click", async () => {
+    // Si no hay token, obligamos login
+    if (!getToken()) {
+      openLogin();
+      toast("Iniciá sesión para agregar turnos", "warn");
+      return;
+    }
+    await openCreateAppointmentModal();
+  });
+})();
 
 // ---- Servicios ----
 async function loadServices() {
