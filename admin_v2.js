@@ -729,7 +729,7 @@ async function loadWorkingHours() {
       </div>
     </div>
 
-    <div id="whGrid" class="grid" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px"></div>
+    <div id="whGrid" class="grid wh-grid"></div>
 
     <div class="muted" style="margin-top:10px">
       Tip: si dejás un día sin franjas, queda como <b>cerrado</b>.
@@ -777,7 +777,7 @@ function renderWorkingHours() {
     const rows = ranges
       .map(
         (r, idx) => `
-        <div class="wh-row" style="display:flex;gap:10px;align-items:center;margin-top:10px">
+        <div class="wh-row" style="display:flex;gap:10px;align-items:flex-end;margin-top:10px">
           <div style="flex:1">
             <label class="muted" style="display:block;margin-bottom:6px">Desde</label>
             <input class="input" type="time" data-wh-start="${d.i}:${idx}" value="${escapeAttr(r.startTime)}" />
@@ -786,7 +786,7 @@ function renderWorkingHours() {
             <label class="muted" style="display:block;margin-bottom:6px">Hasta</label>
             <input class="input" type="time" data-wh-end="${d.i}:${idx}" value="${escapeAttr(r.endTime)}" />
           </div>
-          <button class="btn" data-wh-del="${d.i}:${idx}" title="Eliminar">✕</button>
+          <button class="btn" data-wh-del="${d.i}:${idx}" title="Eliminar franja">✕</button>
         </div>
       `
       )
@@ -794,39 +794,106 @@ function renderWorkingHours() {
 
     return `
       <div class="card">
-        <div class="card-head" style="display:flex;justify-content:space-between;align-items:center;gap:12px">
+        <div class="card-head" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
           <div>
             <h3 style="margin:0">${d.name}</h3>
             <p class="muted" style="margin:6px 0 0">${isClosed ? "Cerrado" : "Abierto"}</p>
           </div>
-          <div style="display:flex;gap:10px;align-items:center">
-            <button class="btn" data-wh-add="${d.i}">+ Agregar franja</button>
+
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:flex-end">
+            <!-- Toggle -->
+            <button class="btn" data-wh-toggle="${d.i}">
+              ${isClosed ? "Abrir" : "Cerrar"}
+            </button>
+
+            <!-- Add -->
+            <button class="btn" data-wh-add="${d.i}" ${isClosed ? "disabled" : ""}>+ Agregar franja</button>
+
+            <!-- Copy -->
+            <button class="btn" data-wh-copy="${d.i}" ${isClosed ? "disabled" : ""}>Copiar</button>
           </div>
         </div>
 
         <div style="margin-top:12px">
-          ${isClosed ? `<div class="muted">Sin franjas. (${d.name} cerrado)</div>` : rows}
+          ${
+            isClosed
+              ? `<div class="muted">Sin franjas. (${d.name} cerrado)</div>`
+              : rows
+          }
         </div>
+
+        ${
+          isClosed
+            ? ""
+            : `
+          <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap">
+            <button class="btn" data-wh-preset="${d.i}:corrido">Preset: corrido</button>
+            <button class="btn" data-wh-preset="${d.i}:cortado">Preset: cortado</button>
+            <button class="btn" data-wh-preset="${d.i}:tarde">Preset: tarde</button>
+          </div>
+        `
+        }
       </div>
     `;
   }).join("");
 
-  // bind events (delegation)
+  // delegation
   grid.onclick = (e) => {
     const addBtn = e.target.closest("[data-wh-add]");
     const delBtn = e.target.closest("[data-wh-del]");
+    const toggleBtn = e.target.closest("[data-wh-toggle]");
+    const copyBtn = e.target.closest("[data-wh-copy]");
+    const presetBtn = e.target.closest("[data-wh-preset]");
+
+    if (toggleBtn) {
+      const wd = Number(toggleBtn.dataset.whToggle);
+      const ranges = whState[wd] || [];
+      if (ranges.length === 0) {
+        // abrir con default lindo
+        whState[wd] = [{ startTime: "10:00", endTime: "13:00" }, { startTime: "16:00", endTime: "20:00" }];
+      } else {
+        // cerrar
+        whState[wd] = [];
+      }
+      renderWorkingHours();
+      return;
+    }
+
     if (addBtn) {
       const wd = Number(addBtn.dataset.whAdd);
       if (!whState[wd]) whState[wd] = [];
       whState[wd].push({ startTime: "10:00", endTime: "13:00" });
       renderWorkingHours();
+      return;
     }
+
     if (delBtn) {
       const [wdStr, idxStr] = String(delBtn.dataset.whDel).split(":");
       const wd = Number(wdStr);
       const idx = Number(idxStr);
       whState[wd].splice(idx, 1);
       renderWorkingHours();
+      return;
+    }
+
+    if (presetBtn) {
+      const [wdStr, preset] = String(presetBtn.dataset.whPreset).split(":");
+      const wd = Number(wdStr);
+      if (preset === "corrido") {
+        whState[wd] = [{ startTime: "10:00", endTime: "20:00" }];
+      } else if (preset === "cortado") {
+        whState[wd] = [{ startTime: "10:00", endTime: "13:00" }, { startTime: "16:00", endTime: "20:00" }];
+      } else if (preset === "tarde") {
+        whState[wd] = [{ startTime: "16:00", endTime: "21:00" }];
+      }
+      renderWorkingHours();
+      return;
+    }
+
+    if (copyBtn) {
+      const wd = Number(copyBtn.dataset.whCopy);
+      openCopyDayModal(wd);
+      return;
     }
   };
 
@@ -847,6 +914,65 @@ function renderWorkingHours() {
     }
   };
 }
+
+// ===============================
+// MODAL “COPIAR DÍA A…”
+// (pegado abajo de renderWorkingHours / bloque plantilla horaria)
+// ===============================
+async function openCopyDayModal(fromWeekday) {
+  const fromName = WEEKDAYS.find(d => d.i === fromWeekday)?.name || "Día";
+
+  const checks = WEEKDAYS
+    .filter(d => d.i !== fromWeekday)
+    .map(d => `
+      <label style="display:flex;gap:10px;align-items:center;margin:8px 0">
+        <input type="checkbox" data-copy-target="${d.i}" />
+        <span>${d.name}</span>
+      </label>
+    `).join("");
+
+  const body = `
+    <div class="muted">Copiar horarios de <b>${fromName}</b> a:</div>
+    <div style="margin-top:10px">${checks}</div>
+    <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn" id="btnCopyAll">Copiar a toda la semana</button>
+    </div>
+  `;
+
+  const result = await openModal({
+    title: "Copiar horarios",
+    subtitle: "Ahorra tiempo copiando un día a otros días",
+    bodyHtml: body,
+    okText: "Copiar",
+  });
+
+  if (!result?.ok) return;
+
+  // targets seleccionados
+  const targets = Array.from(document.querySelectorAll("[data-copy-target]"))
+    .filter(el => el.checked)
+    .map(el => Number(el.dataset.copyTarget));
+
+  // si tocó ok sin seleccionar nada
+  if (!targets.length) {
+    alert("Seleccioná al menos un día.");
+    return;
+  }
+
+  const source = (whState[fromWeekday] || []).map(r => ({ ...r }));
+  for (const t of targets) {
+    whState[t] = source.map(r => ({ ...r }));
+  }
+  renderWorkingHours();
+}
+
+// botón "copiar a toda la semana" dentro del modal
+document.addEventListener("click", (e) => {
+  const btn = e.target.closest("#btnCopyAll");
+  if (!btn) return;
+  // tilda todos los checkboxes del modal
+  document.querySelectorAll("[data-copy-target]").forEach(el => el.checked = true);
+});
 
 async function saveWorkingHours() {
   const err = validateState(whState);
@@ -872,6 +998,7 @@ async function saveWorkingHours() {
     alert("Error guardando: " + e.message);
   }
 }
+
 // init
 (async function init() {
   if (!getToken()) openLogin();
@@ -879,3 +1006,4 @@ async function saveWorkingHours() {
   await loadShopHeader();
   showView(getRoute());
 })();
+
