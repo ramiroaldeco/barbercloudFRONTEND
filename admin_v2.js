@@ -72,9 +72,10 @@ function showView(route) {
     loadServices();
   }
   if (route === "horarios") {
-    if (pageTitle) pageTitle.textContent = "Plantilla Horaria";
-    if (pageSubtitle) pageSubtitle.textContent = "Horarios semanales";
-  }
+  if (pageTitle) pageTitle.textContent = "Plantilla Horaria";
+  if (pageSubtitle) pageSubtitle.textContent = "Horarios semanales";
+  loadWorkingHours();
+}
   if (route === "config") {
     if (pageTitle) pageTitle.textContent = "Configuración";
     if (pageSubtitle) pageSubtitle.textContent = "Datos de tu barbería";
@@ -662,7 +663,215 @@ $("btnReload")?.addEventListener("click", async () => {
   await loadShopHeader();
   showView(getRoute());
 });
+// ===============================
+// PLANTILLA HORARIA (PRO)
+// ===============================
+const WEEKDAYS = [
+  { i: 0, name: "Domingo" },
+  { i: 1, name: "Lunes" },
+  { i: 2, name: "Martes" },
+  { i: 3, name: "Miércoles" },
+  { i: 4, name: "Jueves" },
+  { i: 5, name: "Viernes" },
+  { i: 6, name: "Sábado" },
+];
 
+let whState = {}; // {weekday: [{startTime,endTime}]}
+
+function whEmptyState() {
+  const s = {};
+  for (const d of WEEKDAYS) s[d.i] = [];
+  return s;
+}
+
+function parseTimeToMin(t) {
+  const [h, m] = String(t).split(":").map(Number);
+  return h * 60 + m;
+}
+
+function validateState(state) {
+  for (const d of WEEKDAYS) {
+    const ranges = state[d.i] || [];
+    for (const r of ranges) {
+      if (!r.startTime || !r.endTime) return `Faltan horas en ${d.name}`;
+      if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(r.startTime)) return `Hora inválida en ${d.name}`;
+      if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(r.endTime)) return `Hora inválida en ${d.name}`;
+      if (parseTimeToMin(r.startTime) >= parseTimeToMin(r.endTime)) {
+        return `En ${d.name}, la hora de inicio debe ser menor a la de fin`;
+      }
+    }
+    // no solapes
+    const sorted = [...ranges].sort((a, b) => parseTimeToMin(a.startTime) - parseTimeToMin(b.startTime));
+    for (let i = 1; i < sorted.length; i++) {
+      if (parseTimeToMin(sorted[i].startTime) < parseTimeToMin(sorted[i - 1].endTime)) {
+        return `En ${d.name}, tenés franjas superpuestas`;
+      }
+    }
+  }
+  return null;
+}
+
+async function loadWorkingHours() {
+  const root = document.getElementById("view-horarios");
+  if (!root) return;
+
+  root.innerHTML = `
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-head" style="display:flex;justify-content:space-between;align-items:center;gap:12px">
+        <div>
+          <h3 style="margin:0">Plantilla semanal</h3>
+          <p class="muted" style="margin:6px 0 0">Definí tus horarios por día. Podés tener varias franjas (mañana/tarde).</p>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end">
+          <button class="btn" id="btnWhReset">Restablecer</button>
+          <button class="btn primary" id="btnWhSave">Guardar cambios</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="whGrid" class="grid" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px"></div>
+
+    <div class="muted" style="margin-top:10px">
+      Tip: si dejás un día sin franjas, queda como <b>cerrado</b>.
+    </div>
+  `;
+
+  // load from API
+  whState = whEmptyState();
+  try {
+    const data = await apiGet("/working-hours/mine");
+    const items = data.items || [];
+    for (const it of items) {
+      const w = Number(it.weekday);
+      if (!whState[w]) whState[w] = [];
+      whState[w].push({ startTime: it.startTime, endTime: it.endTime });
+    }
+    // ordenar
+    for (const d of WEEKDAYS) {
+      whState[d.i].sort((a, b) => parseTimeToMin(a.startTime) - parseTimeToMin(b.startTime));
+    }
+  } catch (e) {
+    // si no existe todavía, igual mostramos vacío
+    console.warn("No pude cargar working hours:", e.message);
+  }
+
+  renderWorkingHours();
+
+  document.getElementById("btnWhReset")?.addEventListener("click", () => {
+    if (!confirm("¿Restablecer la plantilla a vacío?")) return;
+    whState = whEmptyState();
+    renderWorkingHours();
+  });
+
+  document.getElementById("btnWhSave")?.addEventListener("click", saveWorkingHours);
+}
+
+function renderWorkingHours() {
+  const grid = document.getElementById("whGrid");
+  if (!grid) return;
+
+  grid.innerHTML = WEEKDAYS.map((d) => {
+    const ranges = whState[d.i] || [];
+    const isClosed = ranges.length === 0;
+
+    const rows = ranges
+      .map(
+        (r, idx) => `
+        <div class="wh-row" style="display:flex;gap:10px;align-items:center;margin-top:10px">
+          <div style="flex:1">
+            <label class="muted" style="display:block;margin-bottom:6px">Desde</label>
+            <input class="input" type="time" data-wh-start="${d.i}:${idx}" value="${escapeAttr(r.startTime)}" />
+          </div>
+          <div style="flex:1">
+            <label class="muted" style="display:block;margin-bottom:6px">Hasta</label>
+            <input class="input" type="time" data-wh-end="${d.i}:${idx}" value="${escapeAttr(r.endTime)}" />
+          </div>
+          <button class="btn" data-wh-del="${d.i}:${idx}" title="Eliminar">✕</button>
+        </div>
+      `
+      )
+      .join("");
+
+    return `
+      <div class="card">
+        <div class="card-head" style="display:flex;justify-content:space-between;align-items:center;gap:12px">
+          <div>
+            <h3 style="margin:0">${d.name}</h3>
+            <p class="muted" style="margin:6px 0 0">${isClosed ? "Cerrado" : "Abierto"}</p>
+          </div>
+          <div style="display:flex;gap:10px;align-items:center">
+            <button class="btn" data-wh-add="${d.i}">+ Agregar franja</button>
+          </div>
+        </div>
+
+        <div style="margin-top:12px">
+          ${isClosed ? `<div class="muted">Sin franjas. (${d.name} cerrado)</div>` : rows}
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  // bind events (delegation)
+  grid.onclick = (e) => {
+    const addBtn = e.target.closest("[data-wh-add]");
+    const delBtn = e.target.closest("[data-wh-del]");
+    if (addBtn) {
+      const wd = Number(addBtn.dataset.whAdd);
+      if (!whState[wd]) whState[wd] = [];
+      whState[wd].push({ startTime: "10:00", endTime: "13:00" });
+      renderWorkingHours();
+    }
+    if (delBtn) {
+      const [wdStr, idxStr] = String(delBtn.dataset.whDel).split(":");
+      const wd = Number(wdStr);
+      const idx = Number(idxStr);
+      whState[wd].splice(idx, 1);
+      renderWorkingHours();
+    }
+  };
+
+  grid.oninput = (e) => {
+    const startEl = e.target.closest("[data-wh-start]");
+    const endEl = e.target.closest("[data-wh-end]");
+    if (startEl) {
+      const [wdStr, idxStr] = String(startEl.dataset.whStart).split(":");
+      const wd = Number(wdStr);
+      const idx = Number(idxStr);
+      whState[wd][idx].startTime = startEl.value;
+    }
+    if (endEl) {
+      const [wdStr, idxStr] = String(endEl.dataset.whEnd).split(":");
+      const wd = Number(wdStr);
+      const idx = Number(idxStr);
+      whState[wd][idx].endTime = endEl.value;
+    }
+  };
+}
+
+async function saveWorkingHours() {
+  const err = validateState(whState);
+  if (err) return alert(err);
+
+  // flatten
+  const items = [];
+  for (const d of WEEKDAYS) {
+    const ranges = whState[d.i] || [];
+    for (const r of ranges) {
+      items.push({
+        weekday: d.i,
+        startTime: r.startTime,
+        endTime: r.endTime,
+      });
+    }
+  }
+
+  try {
+    await apiPut("/working-hours/mine", { items });
+    alert("Plantilla guardada ✅");
+  } catch (e) {
+    alert("Error guardando: " + e.message);
+  }
+}
 // init
 (async function init() {
   if (!getToken()) openLogin();
