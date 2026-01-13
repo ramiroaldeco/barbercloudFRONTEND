@@ -1,6 +1,20 @@
 const API = window.API_BASE || "https://barbercloud.onrender.com/api";
-const qs = new URLSearchParams(location.search);
-const slug = qs.get("slug") || "";
+
+// slug por ?slug=... o por path /barberrami
+function getSlug() {
+  const qs = new URLSearchParams(location.search);
+  const q = qs.get("slug");
+  if (q) return q;
+
+  // ejemplo: /barberrami  o /book.html/barberrami (según hosting)
+  const parts = location.pathname.split("/").filter(Boolean);
+  // si estás en /book.html, el slug no está. si estás en /barberrami, sí.
+  const last = parts[parts.length - 1];
+  if (last && !last.endsWith(".html")) return last;
+
+  return "";
+}
+const slug = getSlug();
 
 const $ = (id) => document.getElementById(id);
 
@@ -32,8 +46,8 @@ async function apiPost(path, body) {
 function todayISO() {
   const d = new Date();
   const y = d.getFullYear();
-  const m = String(d.getMonth()+1).padStart(2,"0");
-  const dd = String(d.getDate()).padStart(2,"0");
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
   return `${y}-${m}-${dd}`;
 }
 
@@ -75,9 +89,12 @@ function renderSlots(slots) {
 }
 
 async function init() {
+  // ✅ Bloquear fechas pasadas + default hoy
+  $("dateInput").min = todayISO();
+
   if (!slug) {
     $("shopTitle").textContent = "Falta slug";
-    $("shopMeta").textContent = "Usá: book.html?slug=barberrami";
+    $("shopMeta").textContent = "Usá: book.html?slug=barberrami o entrá a /barberrami (con rewrites)";
     $("btnLoad").disabled = true;
     return;
   }
