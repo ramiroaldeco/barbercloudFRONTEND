@@ -51,11 +51,26 @@ function todayISO() {
   return `${y}-${m}-${dd}`;
 }
 
+function renderServiceSummary() {
+  const id = Number($("serviceSelect").value);
+  const s = state.services.find(x => x.id === id);
+  if (!s) return;
+
+  const pct = state.barbershop?.defaultDepositPercentage ?? 15;
+  const deposit = Math.round((s.price * pct) / 100);
+
+  $("serviceSummary").innerHTML =
+    `Duración: <b>${s.durationMinutes} min</b> • Precio: <b>$${s.price}</b> • Seña aprox: <b>$${deposit}</b> (${pct}%)`;
+}
+
 function renderServices() {
   const sel = $("serviceSelect");
   sel.innerHTML = state.services.map(s =>
     `<option value="${s.id}">${s.name} ($${s.price})</option>`
   ).join("");
+
+  // ✅ resumen del servicio apenas se renderiza el select
+  renderServiceSummary();
 }
 
 function renderSlots(slots) {
@@ -109,6 +124,18 @@ async function init() {
   const services = await apiGet(`/public/${slug}/services`);
   state.services = services.items || [];
   renderServices();
+
+  // ✅ init: resumen + hint pro
+  renderServiceSummary();
+  $("slotHint").textContent = "Elegí fecha y tocá “Ver horarios”.";
+
+  // ✅ cada vez que cambie el servicio: refresca resumen y resetea slots
+  $("serviceSelect").addEventListener("change", () => {
+    renderServiceSummary();
+    // reset slots
+    renderSlots([]);
+    $("slotHint").textContent = "Elegí fecha y tocá “Ver horarios”.";
+  });
 
   // fecha default
   $("dateInput").value = todayISO();
