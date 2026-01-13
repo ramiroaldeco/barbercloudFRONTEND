@@ -24,7 +24,7 @@ function $(id) {
 function safeVal(id, fallback = "") {
   const el = $(id);
   if (!el) return fallback;
-  return (el.value ?? fallback);
+  return el.value ?? fallback;
 }
 function safeText(id, txt) {
   const el = $(id);
@@ -331,24 +331,12 @@ document.querySelector("#appointmentsTable")?.addEventListener("click", async (e
   }
 });
 
-// ✅ NUEVO: Agregar turno (modal + POST /appointments)
-function findAddTurnButton() {
-  // soporta varios ids posibles sin romper nada
-  return (
-    $("btnAddAppointment") ||
-    $("btnNewAppointment") ||
-    $("btnAddTurn") ||
-    $("btnAddTurno") ||
-    $("btnCreateAppointment") ||
-    $("btnAddBooking") ||
-    // fallback: si tu botón tiene data-action="add-appointment"
-    document.querySelector('[data-action="add-appointment"]')
-  );
-}
-
+// ✅ NUEVO: Agregar turno (modal + POST /appointments/owner)
+// - usa un único addEventListener al botón por ID: btnQuickAdd
+// - valida que los inputs existan antes de leer values (safeVal ya lo hace)
 async function openAddTurnModal() {
   try {
-    // 1) necesito servicios para armar el select
+    // 1) pedir lista de servicios (del dueño)
     const resp = await apiGet("/services/mine");
     const services = resp.items || resp || [];
 
@@ -359,7 +347,10 @@ async function openAddTurnModal() {
     }
 
     const optionsHtml = services
-      .map((s) => `<option value="${s.id}">${escapeHtml(s.name)} ($${escapeHtml(String(s.price))})</option>`)
+      .map(
+        (s) =>
+          `<option value="${s.id}">${escapeHtml(s.name)} ($${escapeHtml(String(s.price))})</option>`
+      )
       .join("");
 
     const today = new Date();
@@ -394,14 +385,15 @@ async function openAddTurnModal() {
 
     if (!result?.ok) return;
 
-    // 2) leer valores del modal
-    const date = safeVal("apptDate", "").trim();
-    const time = safeVal("apptTime", "").trim();
-    const serviceId = Number(safeVal("apptService", ""));
-    const customerName = safeVal("apptName", "").trim();
-    const customerPhone = safeVal("apptPhone", "").trim();
+    // 2) leer valores (safeVal valida existencia del input)
+    const date = String(safeVal("apptDate", "")).trim();
+    const time = String(safeVal("apptTime", "")).trim();
+    const serviceIdRaw = safeVal("apptService", "");
+    const serviceId = Number(serviceIdRaw);
+    const customerName = String(safeVal("apptName", "")).trim();
+    const customerPhone = String(safeVal("apptPhone", "")).trim();
 
-    if (!date || !time || !serviceId || Number.isNaN(serviceId)) {
+    if (!date || !time || !serviceIdRaw || Number.isNaN(serviceId)) {
       alert("Completá fecha, hora y servicio.");
       return;
     }
@@ -410,17 +402,16 @@ async function openAddTurnModal() {
       return;
     }
 
-    // 3) crear
-    await apiPost("/appointments", {
+    // 3) crear turno desde el admin (dueño) ✅ /appointments/owner
+    await apiPost("/appointments/owner", {
+      serviceId,
       date,
       time,
-      serviceId,
       customerName,
       customerPhone: customerPhone || null,
       status: "pending",
     });
 
-    closeModal();
     await loadAppointments();
     alert("Turno creado ✅");
   } catch (e) {
@@ -428,9 +419,15 @@ async function openAddTurnModal() {
   }
 }
 
-// enganchar botón
-const btnAddTurn = findAddTurnButton();
-btnAddTurn?.addEventListener("click", openAddTurnModal);
+// ✅ Enganche pedido: un único addEventListener por ID
+(function bindQuickAddOnce() {
+  const btn = document.getElementById("btnQuickAdd");
+  if (!btn) return;
+  // evita duplicar listeners si el script se carga 2 veces
+  if (btn.dataset.bound === "1") return;
+  btn.dataset.bound = "1";
+  btn.addEventListener("click", openAddTurnModal);
+})();
 
 // ---- Servicios ----
 async function loadServices() {
@@ -456,7 +453,11 @@ async function loadServices() {
             <h3 style="margin:0">${escapeHtml(s.name)}</h3>
             <p class="muted" style="margin:6px 0 0">
               $${escapeHtml(String(s.price))} • ${escapeHtml(String(s.durationMinutes || 30))} min
-              ${s.depositPercentage != null ? `• Seña ${escapeHtml(String(s.depositPercentage))}%` : "• Seña por defecto"}
+              ${
+                s.depositPercentage != null
+                  ? `• Seña ${escapeHtml(String(s.depositPercentage))}%`
+                  : "• Seña por defecto"
+              }
             </p>
           </div>
           <div class="actions">
@@ -494,12 +495,13 @@ $("btnNewService")?.addEventListener("click", async () => {
   if (!result?.ok) return;
 
   try {
-    const name = $("srvName")?.value?.trim() || "";
+    // ✅ valida existencia antes de leer
+    const name = ($("srvName")?.value ?? "").trim();
     const price = Number($("srvPrice")?.value);
     const durationMinutes = Number($("srvDur")?.value || 30);
     const depRaw = $("srvDep")?.value ?? "";
     const depositPercentage = depRaw === "" ? null : Number(depRaw);
-    const description = $("srvDesc")?.value?.trim() || "";
+    const description = ($("srvDesc")?.value ?? "").trim();
 
     if (!name || Number.isNaN(price)) throw new Error("Nombre y precio son obligatorios");
 
@@ -551,23 +553,30 @@ $("servicesGrid")?.addEventListener("click", async (e) => {
           <label class="label">Precio</label>
           <input class="input" id="srvPrice" type="number" value="${escapeAttr(String(s.price))}" />
           <label class="label">Duración (min)</label>
-          <input class="input" id="srvDur" type="number" value="${escapeAttr(String(s.durationMinutes || 30))}" />
+          <input class="input" id="srvDur" type="number" value="${escapeAttr(
+            String(s.durationMinutes || 30)
+          )}" />
           <label class="label">Seña (%) (vacío = usa por defecto)</label>
-          <input class="input" id="srvDep" type="number" value="${s.depositPercentage == null ? "" : escapeAttr(String(s.depositPercentage))}" />
+          <input class="input" id="srvDep" type="number" value="${
+            s.depositPercentage == null ? "" : escapeAttr(String(s.depositPercentage))
+          }" />
           <label class="label">Descripción (opcional)</label>
-          <input class="input" id="srvDesc" value="${s.description ? escapeAttr(String(s.description)) : ""}" />
+          <input class="input" id="srvDesc" value="${
+            s.description ? escapeAttr(String(s.description)) : ""
+          }" />
         `,
         okText: "Guardar",
       });
 
       if (!result?.ok) return;
 
-      const name = $("srvName")?.value?.trim() || "";
+      // ✅ valida existencia antes de leer
+      const name = ($("srvName")?.value ?? "").trim();
       const price = Number($("srvPrice")?.value);
       const durationMinutes = Number($("srvDur")?.value || 30);
       const depRaw = $("srvDep")?.value ?? "";
       const depositPercentage = depRaw === "" ? null : Number(depRaw);
-      const description = $("srvDesc")?.value?.trim() || "";
+      const description = ($("srvDesc")?.value ?? "").trim();
 
       await apiPut(`/services/${editId}`, {
         name,
@@ -595,7 +604,8 @@ async function loadConfig() {
     if ($("cfgPhone")) $("cfgPhone").value = shop.phone || "";
     if ($("cfgSlug")) $("cfgSlug").value = shop.slug || "";
     if ($("cfgDepositPct"))
-      $("cfgDepositPct").value = shop.defaultDepositPercentage != null ? String(shop.defaultDepositPercentage) : "";
+      $("cfgDepositPct").value =
+        shop.defaultDepositPercentage != null ? String(shop.defaultDepositPercentage) : "";
   } catch (e) {
     console.warn(e.message);
   }
