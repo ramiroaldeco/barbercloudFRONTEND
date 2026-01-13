@@ -183,6 +183,22 @@
             </div>
             <div class="card-body" id="scheduleForm">
               <div class="muted">Acá va la plantilla (siguiente paso).</div>
+
+              <!-- ✅ NUEVO: Bloqueos / Vacaciones (arriba del grid de días) -->
+              <div class="card" style="margin-bottom:14px">
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+                  <div>
+                    <h3 style="margin:0">Bloqueos / Vacaciones</h3>
+                    <p class="muted" style="margin:6px 0 0">Bloqueá días completos o franjas horarias (se refleja en el booking).</p>
+                  </div>
+                  <button class="btn primary" id="btnAddBlock">+ Nuevo bloqueo</button>
+                </div>
+
+                <div id="blocksList" style="margin-top:12px"></div>
+              </div>
+              <!-- /✅ NUEVO -->
+
+              <!-- (Tu grid de días ya existente iría abajo. No lo toqué.) -->
             </div>
           </div>
         </div>
