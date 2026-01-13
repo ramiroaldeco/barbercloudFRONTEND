@@ -153,7 +153,9 @@ const btnModalOk = $("btnModalOk");
 
 let modalResolve = null;
 
+// ✅ CAMBIO: limpiar modalBody al abrir (para que no quede "sucio")
 function openModal({ title, subtitle = "", bodyHtml, okText = "Guardar" }) {
+  if (modalBody) modalBody.innerHTML = ""; // ✅ limpiar al abrir
   if (modalTitle) modalTitle.textContent = title;
   if (modalSubtitle) modalSubtitle.textContent = subtitle;
   if (modalBody) modalBody.innerHTML = bodyHtml;
@@ -165,9 +167,10 @@ function openModal({ title, subtitle = "", bodyHtml, okText = "Guardar" }) {
   });
 }
 
+// ✅ CAMBIO: NO limpiar modalBody al cerrar (porque después necesitamos leer inputs)
 function closeModal(result = null) {
   if (modalBackdrop) modalBackdrop.style.display = "none";
-  if (modalBody) modalBody.innerHTML = "";
+  // ❌ NO borres modalBody acá, porque después necesitamos leer los inputs
   if (modalResolve) modalResolve(result);
   modalResolve = null;
 }
