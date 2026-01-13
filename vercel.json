@@ -6,6 +6,7 @@
     { "source": "/signup", "destination": "/signup.html" },
     { "source": "/book", "destination": "/book.html" },
 
-    { "source": "/:slug", "destination": "/book.html" }
+    { "source": "/:slug", "destination": "/book.html?slug=:slug" }
   ]
 }
+
