@@ -7,57 +7,54 @@
   <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
-  <div class="page-wrap">
-    <header class="topbar">
-      <div class="brand">
-        <div class="logo">B</div>
-        <div>
-          <div class="brand-title" id="shopTitle">Cargando barbería...</div>
-          <div class="brand-sub" id="shopSub">Reservá tu turno online</div>
-        </div>
-      </div>
-      <a class="btn-ghost" href="./index.html">Volver</a>
-    </header>
+  <div class="wrap" style="max-width:960px;margin:0 auto;padding:18px">
+    <div class="card">
+      <h1 id="shopTitle" style="margin:0">Reservar turno</h1>
+      <p id="shopMeta" class="muted" style="margin:8px 0 0"></p>
+    </div>
 
-    <main class="card">
-      <h2>Reservar turno</h2>
-      <p class="muted" id="shopInfo"></p>
+    <div class="card" style="margin-top:14px">
+      <h3 style="margin:0 0 10px">1) Elegí servicio y fecha</h3>
 
-      <div id="err" class="muted" style="color:#ff6b6b; margin: 10px 0;"></div>
+      <label class="muted">Servicio</label>
+      <select id="serviceSelect" class="input"></select>
 
-      <form id="form">
-        <label>Servicio</label>
-        <select id="serviceSelect" required></select>
+      <label class="muted" style="margin-top:10px;display:block">Fecha</label>
+      <input id="dateInput" class="input" type="date"/>
 
-        <div class="grid2">
-          <div>
-            <label>Fecha</label>
-            <input type="date" id="date" required />
-          </div>
-          <div>
-            <label>Hora</label>
-            <input type="time" id="time" required />
-          </div>
-        </div>
+      <button id="btnLoad" class="btn primary" style="margin-top:12px">Ver horarios</button>
+    </div>
 
-        <label>Nombre</label>
-        <input id="customerName" placeholder="Tu nombre" required />
+    <div class="card" style="margin-top:14px">
+      <h3 style="margin:0 0 10px">2) Horarios disponibles</h3>
+      <div id="slots" style="display:flex;flex-wrap:wrap;gap:10px"></div>
+      <div id="slotHint" class="muted" style="margin-top:10px"></div>
+    </div>
 
-        <label>Teléfono</label>
-        <input id="customerPhone" placeholder="3534..." required />
+    <div class="card" style="margin-top:14px">
+      <h3 style="margin:0 0 10px">3) Tus datos</h3>
 
-        <button class="btn-primary" type="submit" id="btn">
-          Confirmar reserva
-        </button>
+      <label class="muted">Nombre</label>
+      <input id="nameInput" class="input" placeholder="Tu nombre"/>
 
-        <div id="pricingBox" class="muted" style="margin-top:12px; display:none;"></div>
-      </form>
-    </main>
+      <label class="muted" style="margin-top:10px;display:block">Teléfono</label>
+      <input id="phoneInput" class="input" placeholder="351..." />
+
+      <label class="muted" style="margin-top:10px;display:block">Email (opcional)</label>
+      <input id="emailInput" class="input" placeholder="tu@email.com"/>
+
+      <label class="muted" style="margin-top:10px;display:block">Nota (opcional)</label>
+      <input id="notesInput" class="input" placeholder="Ej: llego 10 min tarde" />
+
+      <button id="btnBook" class="btn primary" style="margin-top:12px" disabled>Reservar</button>
+      <div id="bookMsg" class="muted" style="margin-top:10px"></div>
+    </div>
   </div>
 
-<script src="./config.js"></script>
-<script src="./book.js" defer></script>
-
-
+  <script>
+    // API base
+    window.API_BASE = "https://barbercloud.onrender.com/api";
+  </script>
+  <script src="./book.js"></script>
 </body>
 </html>
