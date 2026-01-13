@@ -12,57 +12,77 @@ function getToken() {
 }
 function setToken(t) {
   localStorage.setItem("bc_token", t);
-  // compat (por si alguna parte usa "token")
-  localStorage.setItem("token", t);
 }
 function clearToken() {
   for (const k of TOKEN_KEYS) localStorage.removeItem(k);
 }
 
+// ---- small helpers DOM (para NO romper si falta un id) ----
+function $(id) {
+  return document.getElementById(id);
+}
+function safeVal(id, fallback = "") {
+  const el = $(id);
+  if (!el) return fallback;
+  return (el.value ?? fallback);
+}
+function safeText(id, txt) {
+  const el = $(id);
+  if (el) el.textContent = txt;
+}
+function safeShow(id, show) {
+  const el = $(id);
+  if (el) el.style.display = show ? "block" : "none";
+}
+
 // ---- routing ----
 const views = {
-  agenda: document.getElementById("view-agenda"),
-  clientes: document.getElementById("view-clientes"),
-  servicios: document.getElementById("view-servicios"),
-  horarios: document.getElementById("view-horarios"),
-  config: document.getElementById("view-config"),
+  agenda: $("view-agenda"),
+  clientes: $("view-clientes"),
+  servicios: $("view-servicios"),
+  horarios: $("view-horarios"),
+  config: $("view-config"),
 };
 
-const pageTitle = document.getElementById("pageTitle");
-const pageSubtitle = document.getElementById("pageSubtitle");
+const pageTitle = $("pageTitle");
+const pageSubtitle = $("pageSubtitle");
 
 function setActiveNav(route) {
-  document.querySelectorAll(".nav-item").forEach(a => {
+  document.querySelectorAll(".nav-item").forEach((a) => {
     a.classList.toggle("active", a.dataset.route === route);
   });
 }
 
 function showView(route) {
-  Object.entries(views).forEach(([k, el]) => el.style.display = (k === route ? "block" : "none"));
+  Object.entries(views).forEach(([k, el]) => {
+    if (!el) return;
+    el.style.display = k === route ? "block" : "none";
+  });
+
   setActiveNav(route);
 
   if (route === "agenda") {
-    pageTitle.textContent = "Agenda";
-    pageSubtitle.textContent = "Gestioná tus turnos";
+    if (pageTitle) pageTitle.textContent = "Agenda";
+    if (pageSubtitle) pageSubtitle.textContent = "Gestioná tus turnos";
     loadAppointments();
   }
   if (route === "servicios") {
-    pageTitle.textContent = "Servicios";
-    pageSubtitle.textContent = "Precios, duración y seña";
+    if (pageTitle) pageTitle.textContent = "Servicios";
+    if (pageSubtitle) pageSubtitle.textContent = "Precios, duración y seña";
     loadServices();
   }
   if (route === "horarios") {
-    pageTitle.textContent = "Plantilla Horaria";
-    pageSubtitle.textContent = "Horarios semanales";
+    if (pageTitle) pageTitle.textContent = "Plantilla Horaria";
+    if (pageSubtitle) pageSubtitle.textContent = "Horarios semanales";
   }
   if (route === "config") {
-    pageTitle.textContent = "Configuración";
-    pageSubtitle.textContent = "Datos de tu barbería";
+    if (pageTitle) pageTitle.textContent = "Configuración";
+    if (pageSubtitle) pageSubtitle.textContent = "Datos de tu barbería";
     loadConfig();
   }
   if (route === "clientes") {
-    pageTitle.textContent = "Clientes";
-    pageSubtitle.textContent = "Historial y búsqueda";
+    if (pageTitle) pageTitle.textContent = "Clientes";
+    if (pageSubtitle) pageSubtitle.textContent = "Historial y búsqueda";
   }
 }
 
@@ -79,9 +99,17 @@ function authHeaders() {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
+async function safeTextRes(res) {
+  try {
+    return await res.text();
+  } catch {
+    return "Error";
+  }
+}
+
 async function apiGet(path) {
   const res = await fetch(`${API}${path}`, { headers: { ...authHeaders() } });
-  if (!res.ok) throw new Error(await safeText(res));
+  if (!res.ok) throw new Error(await safeTextRes(res));
   return res.json();
 }
 
@@ -91,7 +119,7 @@ async function apiPost(path, body) {
     headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify(body),
   });
-  if (!res.ok) throw new Error(await safeText(res));
+  if (!res.ok) throw new Error(await safeTextRes(res));
   return res.json();
 }
 
@@ -101,7 +129,7 @@ async function apiPut(path, body) {
     headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify(body),
   });
-  if (!res.ok) throw new Error(await safeText(res));
+  if (!res.ok) throw new Error(await safeTextRes(res));
   return res.json();
 }
 
@@ -110,144 +138,75 @@ async function apiDelete(path) {
     method: "DELETE",
     headers: { ...authHeaders() },
   });
-  if (!res.ok) throw new Error(await safeText(res));
+  if (!res.ok) throw new Error(await safeTextRes(res));
   return res.json();
 }
 
-async function safeText(res) {
-  try { return await res.text(); } catch { return "Error"; }
-}
-
-// ---- toast (simple, pro, sin romper CSS) ----
-function ensureToastHost() {
-  let host = document.getElementById("toastHost");
-  if (host) return host;
-
-  host = document.createElement("div");
-  host.id = "toastHost";
-  host.style.position = "fixed";
-  host.style.right = "16px";
-  host.style.bottom = "16px";
-  host.style.display = "grid";
-  host.style.gap = "10px";
-  host.style.zIndex = "9999";
-  document.body.appendChild(host);
-  return host;
-}
-
-function toast(text, type = "info") {
-  const host = ensureToastHost();
-
-  const t = document.createElement("div");
-  t.style.padding = "10px 12px";
-  t.style.borderRadius = "14px";
-  t.style.border = "1px solid rgba(255,255,255,.10)";
-  t.style.background = "rgba(10,14,20,.92)";
-  t.style.color = "rgba(232,238,252,.95)";
-  t.style.boxShadow = "0 12px 30px rgba(0,0,0,.35)";
-  t.style.fontFamily = "system-ui, -apple-system, Segoe UI, Roboto, Arial";
-  t.style.fontSize = "14px";
-  t.style.display = "flex";
-  t.style.gap = "10px";
-  t.style.alignItems = "center";
-  t.style.maxWidth = "360px";
-
-  const dot = document.createElement("span");
-  dot.textContent = "●";
-  dot.style.fontSize = "12px";
-
-  if (type === "ok") dot.style.color = "rgba(39,209,124,.95)";
-  else if (type === "error") dot.style.color = "rgba(255,95,109,.95)";
-  else if (type === "warn") dot.style.color = "rgba(255,204,102,.95)";
-  else dot.style.color = "rgba(47,123,255,.95)";
-
-  const msg = document.createElement("div");
-  msg.textContent = text;
-
-  t.appendChild(dot);
-  t.appendChild(msg);
-
-  host.appendChild(t);
-
-  setTimeout(() => {
-    t.style.opacity = "0";
-    t.style.transform = "translateY(6px)";
-    t.style.transition = "opacity .18s ease, transform .18s ease";
-  }, 2200);
-
-  setTimeout(() => {
-    t.remove();
-  }, 2500);
-}
-
-// ---- debounce ----
-function debounce(fn, ms = 400) {
-  let t = null;
-  return (...args) => {
-    clearTimeout(t);
-    t = setTimeout(() => fn(...args), ms);
-  };
-}
-
 // ---- modal ----
-const modalBackdrop = document.getElementById("modalBackdrop");
-const modalTitle = document.getElementById("modalTitle");
-const modalSubtitle = document.getElementById("modalSubtitle");
-const modalBody = document.getElementById("modalBody");
-const btnModalClose = document.getElementById("btnModalClose");
-const btnModalCancel = document.getElementById("btnModalCancel");
-const btnModalOk = document.getElementById("btnModalOk");
+const modalBackdrop = $("modalBackdrop");
+const modalTitle = $("modalTitle");
+const modalSubtitle = $("modalSubtitle");
+const modalBody = $("modalBody");
+const btnModalClose = $("btnModalClose");
+const btnModalCancel = $("btnModalCancel");
+const btnModalOk = $("btnModalOk");
 
 let modalResolve = null;
+
 function openModal({ title, subtitle = "", bodyHtml, okText = "Guardar" }) {
-  modalTitle.textContent = title;
-  modalSubtitle.textContent = subtitle;
-  modalBody.innerHTML = bodyHtml;
-  btnModalOk.textContent = okText;
-  modalBackdrop.style.display = "grid";
+  if (modalTitle) modalTitle.textContent = title;
+  if (modalSubtitle) modalSubtitle.textContent = subtitle;
+  if (modalBody) modalBody.innerHTML = bodyHtml;
+  if (btnModalOk) btnModalOk.textContent = okText;
+  if (modalBackdrop) modalBackdrop.style.display = "grid";
 
   return new Promise((resolve) => {
     modalResolve = resolve;
   });
 }
+
 function closeModal(result = null) {
-  modalBackdrop.style.display = "none";
-  modalBody.innerHTML = "";
+  if (modalBackdrop) modalBackdrop.style.display = "none";
+  if (modalBody) modalBody.innerHTML = "";
   if (modalResolve) modalResolve(result);
   modalResolve = null;
 }
-btnModalClose.addEventListener("click", () => closeModal(null));
-btnModalCancel.addEventListener("click", () => closeModal(null));
-btnModalOk.addEventListener("click", () => closeModal({ ok: true }));
+
+btnModalClose?.addEventListener("click", () => closeModal(null));
+btnModalCancel?.addEventListener("click", () => closeModal(null));
+btnModalOk?.addEventListener("click", () => closeModal({ ok: true }));
 
 // ---- login ----
-const loginBackdrop = document.getElementById("loginBackdrop");
-const btnOpenLogin = document.getElementById("btnOpenLogin");
-const btnLogin = document.getElementById("btnLogin");
-const btnLoginClose = document.getElementById("btnLoginClose");
-const loginEmail = document.getElementById("loginEmail");
-const loginPassword = document.getElementById("loginPassword");
-const loginError = document.getElementById("loginError");
+const loginBackdrop = $("loginBackdrop");
+const btnOpenLogin = $("btnOpenLogin");
+const btnLogin = $("btnLogin");
+const btnLoginClose = $("btnLoginClose");
+const loginEmail = $("loginEmail");
+const loginPassword = $("loginPassword");
+const loginError = $("loginError");
 
 function openLogin() {
-  loginError.style.display = "none";
-  loginBackdrop.style.display = "grid";
+  if (loginError) loginError.style.display = "none";
+  if (loginBackdrop) loginBackdrop.style.display = "grid";
 }
 function closeLogin() {
-  loginBackdrop.style.display = "none";
+  if (loginBackdrop) loginBackdrop.style.display = "none";
 }
-btnOpenLogin.addEventListener("click", openLogin);
-btnLoginClose.addEventListener("click", closeLogin);
 
-btnLogin.addEventListener("click", async () => {
+btnOpenLogin?.addEventListener("click", openLogin);
+btnLoginClose?.addEventListener("click", closeLogin);
+
+btnLogin?.addEventListener("click", async () => {
   try {
-    loginError.style.display = "none";
-    const email = loginEmail.value.trim();
-    const password = loginPassword.value;
+    if (loginError) loginError.style.display = "none";
+    const email = (loginEmail?.value || "").trim();
+    const password = loginPassword?.value || "";
 
     if (!email || !password) {
-      loginError.textContent = "Completá email y contraseña.";
-      loginError.style.display = "block";
+      if (loginError) {
+        loginError.textContent = "Completá email y contraseña.";
+        loginError.style.display = "block";
+      }
       return;
     }
 
@@ -256,18 +215,18 @@ btnLogin.addEventListener("click", async () => {
 
     setToken(data.token);
     closeLogin();
-    toast("Login OK ✅", "ok");
     await loadShopHeader();
     showView(getRoute());
   } catch (e) {
-    loginError.textContent = "Error: " + e.message;
-    loginError.style.display = "block";
+    if (loginError) {
+      loginError.textContent = "Error: " + e.message;
+      loginError.style.display = "block";
+    }
   }
 });
 
-document.getElementById("btnLogout").addEventListener("click", () => {
+$("btnLogout")?.addEventListener("click", () => {
   clearToken();
-  toast("Sesión cerrada", "info");
   openLogin();
 });
 
@@ -276,54 +235,40 @@ async function loadShopHeader() {
   try {
     const data = await apiGet("/barbershops/mine");
 
-    document.getElementById("shopName").textContent = data.name || "BarberCloud";
-    document.getElementById("shopCity").textContent = data.city || "Admin";
-    document.getElementById("shopAvatar").textContent = (data.name || "B").trim().charAt(0).toUpperCase();
+    safeText("shopName", data.name || "BarberCloud");
+    safeText("shopCity", data.city || "Admin");
+    const avatar = (data.name || "B").trim().charAt(0).toUpperCase();
+    safeText("shopAvatar", avatar);
 
-    const filled = ["name", "city", "address", "phone", "slug"].filter(k => data[k]).length;
+    const filled = ["name", "city", "address", "phone", "slug"].filter((k) => data[k]).length;
     const pct = Math.round((filled / 5) * 100);
-    document.getElementById("setupPct").textContent = `${pct}%`;
-    document.getElementById("setupBar").style.width = `${pct}%`;
+    safeText("setupPct", `${pct}%`);
+    const bar = $("setupBar");
+    if (bar) bar.style.width = `${pct}%`;
   } catch (e) {
     console.warn("No pude cargar barbería (mine):", e.message);
   }
 }
 
 // ---- Agenda ----
-function setDefaultDateRangeIfEmpty() {
-  const fromEl = document.getElementById("fromDate");
-  const toEl = document.getElementById("toDate");
-  if (!fromEl || !toEl) return;
-
-  const from = fromEl.value;
-  const to = toEl.value;
-
-  if (from || to) return;
-
-  const today = new Date();
-  const plus7 = new Date();
-  plus7.setDate(today.getDate() + 7);
-
-  const fmt = (d) => d.toISOString().slice(0, 10);
-
-  fromEl.value = fmt(today);
-  toEl.value = fmt(plus7);
+function statusBadge(status) {
+  if (status === "confirmed") return `<span class="badge good">● Confirmado</span>`;
+  if (status === "canceled") return `<span class="badge bad">● Cancelado</span>`;
+  return `<span class="badge warn">● Pendiente</span>`;
 }
 
 async function loadAppointments() {
   const tbody = document.querySelector("#appointmentsTable tbody");
-  const empty = document.getElementById("appointmentsEmpty");
+  const empty = $("appointmentsEmpty");
 
-  // ✅ rango por defecto estilo Agendito
-  setDefaultDateRangeIfEmpty();
+  // ✅ NO explota si falta algún input en tu HTML
+  const q = (safeVal("qAppointments", "") || "").trim();
+  const status = safeVal("statusFilter", "");
+  const from = safeVal("fromDate", "");
+  const to = safeVal("toDate", "");
 
-  const q = document.getElementById("qAppointments").value.trim();
-  const status = document.getElementById("statusFilter").value;
-  const from = document.getElementById("fromDate").value;
-  const to = document.getElementById("toDate").value;
-
-  tbody.innerHTML = "";
-  empty.style.display = "none";
+  if (tbody) tbody.innerHTML = "";
+  if (empty) empty.style.display = "none";
 
   try {
     const params = new URLSearchParams();
@@ -336,8 +281,10 @@ async function loadAppointments() {
     const items = data.items || data || [];
 
     if (!items.length) {
-      empty.style.display = "block";
-      empty.textContent = "No tenés turnos para este rango.";
+      if (empty) {
+        empty.style.display = "block";
+        empty.textContent = "No tenés turnos para este rango.";
+      }
       return;
     }
 
@@ -355,30 +302,19 @@ async function loadAppointments() {
           <button class="btn" data-act="cancel" data-id="${a.id}">Cancelar</button>
         </td>
       `;
-      tbody.appendChild(tr);
+      tbody?.appendChild(tr);
     }
   } catch (e) {
-    empty.style.display = "block";
-    empty.textContent = "Error cargando turnos: " + e.message;
+    if (empty) {
+      empty.style.display = "block";
+      empty.textContent = "Error cargando turnos: " + e.message;
+    }
   }
 }
 
-function statusBadge(status) {
-  if (status === "confirmed") return `<span class="badge good">● Confirmado</span>`;
-  if (status === "canceled") return `<span class="badge bad">● Cancelado</span>`;
-  return `<span class="badge warn">● Pendiente</span>`;
-}
+$("btnApplyFilters")?.addEventListener("click", loadAppointments);
 
-document.getElementById("btnApplyFilters").addEventListener("click", loadAppointments);
-
-// ✅ filtros reactivos (sin romper tu botón)
-const debouncedReloadAppointments = debounce(loadAppointments, 500);
-document.getElementById("qAppointments").addEventListener("input", debouncedReloadAppointments);
-document.getElementById("statusFilter").addEventListener("change", loadAppointments);
-document.getElementById("fromDate").addEventListener("change", loadAppointments);
-document.getElementById("toDate").addEventListener("change", loadAppointments);
-
-document.querySelector("#appointmentsTable").addEventListener("click", async (e) => {
+document.querySelector("#appointmentsTable")?.addEventListener("click", async (e) => {
   const btn = e.target.closest("button");
   if (!btn) return;
 
@@ -387,167 +323,119 @@ document.querySelector("#appointmentsTable").addEventListener("click", async (e)
   if (!id || !act) return;
 
   try {
-    if (act === "confirm") {
-      await apiPut(`/appointments/${id}/status`, { status: "confirmed" });
-      toast("Turno confirmado ✅", "ok");
-    }
-    if (act === "cancel") {
-      await apiPut(`/appointments/${id}/status`, { status: "canceled" });
-      toast("Turno cancelado", "warn");
-    }
+    if (act === "confirm") await apiPut(`/appointments/${id}/status`, { status: "confirmed" });
+    if (act === "cancel") await apiPut(`/appointments/${id}/status`, { status: "canceled" });
     await loadAppointments();
   } catch (err) {
-    toast("Error: " + err.message, "error");
+    alert("Error: " + err.message);
   }
 });
-// ---- Agregar turno (modal + POST) ----
-function findAddAppointmentButton() {
-  // Intentamos varios IDs posibles (por si en tu HTML lo nombraste distinto)
+
+// ✅ NUEVO: Agregar turno (modal + POST /appointments)
+function findAddTurnButton() {
+  // soporta varios ids posibles sin romper nada
   return (
-    document.getElementById("btnAddAppointment") ||
-    document.getElementById("btnAddTurno") ||
-    document.getElementById("btnAdd") ||
-    document.querySelector('[data-action="add-appointment"]') ||
-    // fallback: primer botón que contenga "Agregar turno"
-    Array.from(document.querySelectorAll("button")).find(b =>
-      (b.textContent || "").toLowerCase().includes("agregar turno")
-    )
+    $("btnAddAppointment") ||
+    $("btnNewAppointment") ||
+    $("btnAddTurn") ||
+    $("btnAddTurno") ||
+    $("btnCreateAppointment") ||
+    $("btnAddBooking") ||
+    // fallback: si tu botón tiene data-action="add-appointment"
+    document.querySelector('[data-action="add-appointment"]')
   );
 }
 
-async function openCreateAppointmentModal() {
-  // Traemos servicios para el select
-  let services = [];
+async function openAddTurnModal() {
   try {
-    const data = await apiGet("/services/mine");
-    services = data.items || data || [];
-  } catch (e) {
-    toast("No pude cargar servicios: " + e.message, "error");
-    return;
-  }
+    // 1) necesito servicios para armar el select
+    const resp = await apiGet("/services/mine");
+    const services = resp.items || resp || [];
 
-  if (!services.length) {
-    toast("Primero creá al menos 1 servicio.", "warn");
-    // opcional: te mando directo a servicios
-    location.hash = "#/servicios";
-    return;
-  }
-
-  const today = new Date().toISOString().slice(0, 10);
-
-  const bodyHtml = `
-    <div style="display:grid; gap:10px">
-      <label class="label">Servicio</label>
-      <select class="input" id="aptService">
-        ${services.map(s => `<option value="${s.id}">${escapeHtml(s.name)} - $${escapeHtml(String(s.price))}</option>`).join("")}
-      </select>
-
-      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px">
-        <div>
-          <label class="label">Fecha</label>
-          <input class="input" id="aptDate" type="date" value="${today}" />
-        </div>
-        <div>
-          <label class="label">Hora</label>
-          <input class="input" id="aptTime" type="time" value="10:00" />
-        </div>
-      </div>
-
-      <label class="label">Cliente</label>
-      <input class="input" id="aptCustomerName" placeholder="Nombre y apellido" />
-
-      <label class="label">Teléfono</label>
-      <input class="input" id="aptCustomerPhone" placeholder="3534..." />
-
-      <label class="label">Estado</label>
-      <select class="input" id="aptStatus">
-        <option value="pending">Pendiente</option>
-        <option value="confirmed">Confirmado</option>
-        <option value="canceled">Cancelado</option>
-      </select>
-
-      <div class="muted" style="margin-top:6px">
-        Tip: podés crear “Confirmado” si es un turno manual ya cerrado.
-      </div>
-    </div>
-  `;
-
-  const result = await openModal({
-    title: "Nuevo turno",
-    subtitle: "Cargá un turno manual en tu agenda",
-    bodyHtml,
-    okText: "Crear turno",
-  });
-
-  if (!result?.ok) return;
-
-  try {
-    const serviceId = document.getElementById("aptService").value;
-    const date = document.getElementById("aptDate").value;
-    const time = document.getElementById("aptTime").value;
-    const customerName = document.getElementById("aptCustomerName").value.trim();
-    const customerPhone = document.getElementById("aptCustomerPhone").value.trim();
-    const status = document.getElementById("aptStatus").value;
-
-    if (!serviceId) throw new Error("Elegí un servicio");
-    if (!date) throw new Error("Elegí una fecha");
-    if (!time) throw new Error("Elegí una hora");
-    if (!customerName) throw new Error("Poné el nombre del cliente");
-
-    // Payload “standard”
-    const payload = {
-      serviceId,
-      date,
-      time,
-      customerName,
-      customerPhone: customerPhone || null,
-      status: status || "pending",
-    };
-
-    await apiPost("/appointments", payload);
-
-    closeModal();
-    toast("Turno creado ✅", "ok");
-
-    // Ajusto filtros para que se vea seguro (incluimos esa fecha)
-    const fromEl = document.getElementById("fromDate");
-    const toEl = document.getElementById("toDate");
-    if (fromEl && toEl) {
-      if (!fromEl.value || fromEl.value > date) fromEl.value = date;
-      if (!toEl.value || toEl.value < date) toEl.value = date;
+    if (!services.length) {
+      alert("Primero creá al menos 1 servicio en la sección 'Servicios'.");
+      location.hash = "#/servicios";
+      return;
     }
 
+    const optionsHtml = services
+      .map((s) => `<option value="${s.id}">${escapeHtml(s.name)} ($${escapeHtml(String(s.price))})</option>`)
+      .join("");
+
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, "0");
+    const dd = String(today.getDate()).padStart(2, "0");
+    const todayStr = `${yyyy}-${mm}-${dd}`;
+
+    const result = await openModal({
+      title: "Nuevo turno",
+      subtitle: "Cargá cliente, fecha y servicio",
+      bodyHtml: `
+        <label class="label">Fecha</label>
+        <input class="input" id="apptDate" type="date" value="${todayStr}" />
+
+        <label class="label">Hora</label>
+        <input class="input" id="apptTime" type="time" value="10:00" />
+
+        <label class="label">Servicio</label>
+        <select class="input" id="apptService">
+          ${optionsHtml}
+        </select>
+
+        <label class="label">Cliente</label>
+        <input class="input" id="apptName" placeholder="Nombre y apellido" />
+
+        <label class="label">Teléfono</label>
+        <input class="input" id="apptPhone" placeholder="3534..." />
+      `,
+      okText: "Crear turno",
+    });
+
+    if (!result?.ok) return;
+
+    // 2) leer valores del modal
+    const date = safeVal("apptDate", "").trim();
+    const time = safeVal("apptTime", "").trim();
+    const serviceId = Number(safeVal("apptService", ""));
+    const customerName = safeVal("apptName", "").trim();
+    const customerPhone = safeVal("apptPhone", "").trim();
+
+    if (!date || !time || !serviceId || Number.isNaN(serviceId)) {
+      alert("Completá fecha, hora y servicio.");
+      return;
+    }
+    if (!customerName) {
+      alert("Completá el nombre del cliente.");
+      return;
+    }
+
+    // 3) crear
+    await apiPost("/appointments", {
+      date,
+      time,
+      serviceId,
+      customerName,
+      customerPhone: customerPhone || null,
+      status: "pending",
+    });
+
+    closeModal();
     await loadAppointments();
+    alert("Turno creado ✅");
   } catch (e) {
-    toast("Error: " + e.message, "error");
+    alert("Error creando turno: " + e.message);
   }
 }
 
-// Hook del botón
-(function wireAddAppointmentButton() {
-  const btn = findAddAppointmentButton();
-  if (!btn) {
-    console.warn("No encontré el botón '+ Agregar turno'. Poné id='btnAddAppointment' para engancharlo.");
-    return;
-  }
-  // Evitar doble binding si recargás scripts
-  if (btn.dataset.boundAdd === "1") return;
-  btn.dataset.boundAdd = "1";
-
-  btn.addEventListener("click", async () => {
-    // Si no hay token, obligamos login
-    if (!getToken()) {
-      openLogin();
-      toast("Iniciá sesión para agregar turnos", "warn");
-      return;
-    }
-    await openCreateAppointmentModal();
-  });
-})();
+// enganchar botón
+const btnAddTurn = findAddTurnButton();
+btnAddTurn?.addEventListener("click", openAddTurnModal);
 
 // ---- Servicios ----
 async function loadServices() {
-  const grid = document.getElementById("servicesGrid");
+  const grid = $("servicesGrid");
+  if (!grid) return;
   grid.innerHTML = "";
 
   try {
@@ -584,7 +472,7 @@ async function loadServices() {
   }
 }
 
-document.getElementById("btnNewService").addEventListener("click", async () => {
+$("btnNewService")?.addEventListener("click", async () => {
   const result = await openModal({
     title: "Nuevo servicio",
     subtitle: "Creá un servicio para tu barbería",
@@ -606,12 +494,12 @@ document.getElementById("btnNewService").addEventListener("click", async () => {
   if (!result?.ok) return;
 
   try {
-    const name = document.getElementById("srvName").value.trim();
-    const price = Number(document.getElementById("srvPrice").value);
-    const durationMinutes = Number(document.getElementById("srvDur").value || 30);
-    const depRaw = document.getElementById("srvDep").value;
+    const name = $("srvName")?.value?.trim() || "";
+    const price = Number($("srvPrice")?.value);
+    const durationMinutes = Number($("srvDur")?.value || 30);
+    const depRaw = $("srvDep")?.value ?? "";
     const depositPercentage = depRaw === "" ? null : Number(depRaw);
-    const description = document.getElementById("srvDesc").value.trim();
+    const description = $("srvDesc")?.value?.trim() || "";
 
     if (!name || Number.isNaN(price)) throw new Error("Nombre y precio son obligatorios");
 
@@ -624,14 +512,13 @@ document.getElementById("btnNewService").addEventListener("click", async () => {
     });
 
     closeModal();
-    toast("Servicio creado ✅", "ok");
     await loadServices();
   } catch (e) {
-    toast("Error: " + e.message, "error");
+    alert("Error: " + e.message);
   }
 });
 
-document.getElementById("servicesGrid").addEventListener("click", async (e) => {
+$("servicesGrid")?.addEventListener("click", async (e) => {
   const btn = e.target.closest("button");
   if (!btn) return;
 
@@ -642,10 +529,9 @@ document.getElementById("servicesGrid").addEventListener("click", async (e) => {
     if (!confirm("¿Seguro que querés borrar este servicio?")) return;
     try {
       await apiDelete(`/services/${delId}`);
-      toast("Servicio borrado", "warn");
       await loadServices();
     } catch (err) {
-      toast("Error: " + err.message, "error");
+      alert("Error: " + err.message);
     }
   }
 
@@ -653,8 +539,8 @@ document.getElementById("servicesGrid").addEventListener("click", async (e) => {
     try {
       const services = await apiGet("/services/mine");
       const items = services.items || services || [];
-      const s = items.find(x => x.id === editId);
-      if (!s) return toast("No encontré el servicio", "error");
+      const s = items.find((x) => String(x.id) === String(editId));
+      if (!s) return alert("No encontré el servicio");
 
       const result = await openModal({
         title: "Editar servicio",
@@ -676,12 +562,12 @@ document.getElementById("servicesGrid").addEventListener("click", async (e) => {
 
       if (!result?.ok) return;
 
-      const name = document.getElementById("srvName").value.trim();
-      const price = Number(document.getElementById("srvPrice").value);
-      const durationMinutes = Number(document.getElementById("srvDur").value || 30);
-      const depRaw = document.getElementById("srvDep").value;
+      const name = $("srvName")?.value?.trim() || "";
+      const price = Number($("srvPrice")?.value);
+      const durationMinutes = Number($("srvDur")?.value || 30);
+      const depRaw = $("srvDep")?.value ?? "";
       const depositPercentage = depRaw === "" ? null : Number(depRaw);
-      const description = document.getElementById("srvDesc").value.trim();
+      const description = $("srvDesc")?.value?.trim() || "";
 
       await apiPut(`/services/${editId}`, {
         name,
@@ -692,10 +578,9 @@ document.getElementById("servicesGrid").addEventListener("click", async (e) => {
       });
 
       closeModal();
-      toast("Servicio guardado ✅", "ok");
       await loadServices();
     } catch (err) {
-      toast("Error: " + err.message, "error");
+      alert("Error: " + err.message);
     }
   }
 });
@@ -704,28 +589,28 @@ document.getElementById("servicesGrid").addEventListener("click", async (e) => {
 async function loadConfig() {
   try {
     const shop = await apiGet("/barbershops/mine");
-    document.getElementById("cfgName").value = shop.name || "";
-    document.getElementById("cfgCity").value = shop.city || "";
-    document.getElementById("cfgAddress").value = shop.address || "";
-    document.getElementById("cfgPhone").value = shop.phone || "";
-    document.getElementById("cfgSlug").value = shop.slug || "";
-    document.getElementById("cfgDepositPct").value =
-      (shop.defaultDepositPercentage != null ? String(shop.defaultDepositPercentage) : "");
+    if ($("cfgName")) $("cfgName").value = shop.name || "";
+    if ($("cfgCity")) $("cfgCity").value = shop.city || "";
+    if ($("cfgAddress")) $("cfgAddress").value = shop.address || "";
+    if ($("cfgPhone")) $("cfgPhone").value = shop.phone || "";
+    if ($("cfgSlug")) $("cfgSlug").value = shop.slug || "";
+    if ($("cfgDepositPct"))
+      $("cfgDepositPct").value = shop.defaultDepositPercentage != null ? String(shop.defaultDepositPercentage) : "";
   } catch (e) {
     console.warn(e.message);
   }
 }
 
-document.getElementById("btnSaveConfig").addEventListener("click", async () => {
+$("btnSaveConfig")?.addEventListener("click", async () => {
   try {
-    const name = document.getElementById("cfgName").value.trim();
-    const city = document.getElementById("cfgCity").value.trim();
-    const address = document.getElementById("cfgAddress").value.trim();
-    const phone = document.getElementById("cfgPhone").value.trim();
-    const slug = document.getElementById("cfgSlug").value.trim();
-    const pct = Number(document.getElementById("cfgDepositPct").value);
+    const name = safeVal("cfgName", "").trim();
+    const city = safeVal("cfgCity", "").trim();
+    const address = safeVal("cfgAddress", "").trim();
+    const phone = safeVal("cfgPhone", "").trim();
+    const slug = safeVal("cfgSlug", "").trim();
+    const pctRaw = safeVal("cfgDepositPct", "").trim();
+    const pct = pctRaw === "" ? NaN : Number(pctRaw);
 
-    // 1) datos generales
     await apiPut("/barbershops/mine", {
       name,
       city: city || null,
@@ -734,22 +619,25 @@ document.getElementById("btnSaveConfig").addEventListener("click", async () => {
       slug: slug || null,
     });
 
-    // 2) seña por defecto
     if (!Number.isNaN(pct)) {
       await apiPut("/barbershops/mine/settings", { defaultDepositPercentage: pct });
     }
 
     await loadShopHeader();
-    toast("Guardado ✅", "ok");
+    alert("Guardado ✅");
   } catch (e) {
-    toast("Error: " + e.message, "error");
+    alert("Error: " + e.message);
   }
 });
 
 // ---- utils ----
 function escapeHtml(str) {
-  return String(str).replace(/[&<>"']/g, s => ({
-    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+  return String(str).replace(/[&<>"']/g, (s) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#039;",
   }[s]));
 }
 function escapeAttr(str) {
@@ -757,14 +645,13 @@ function escapeAttr(str) {
 }
 
 // botones top
-document.getElementById("btnReload").addEventListener("click", async () => {
+$("btnReload")?.addEventListener("click", async () => {
   await loadShopHeader();
   showView(getRoute());
 });
 
 // init
-(async function init(){
-  // si no hay token, abrimos login
+(async function init() {
   if (!getToken()) openLogin();
 
   await loadShopHeader();
