@@ -1,189 +1,150 @@
-// book.js
-// ❌ NO definir API_BASE acá (viene de config.js, que ya incluye /api)
+const API = window.API_BASE || "https://barbercloud.onrender.com/api";
+const qs = new URLSearchParams(location.search);
+const slug = qs.get("slug") || "";
 
-// ✅ Paso 5 — Frontend: soportar slug en la URL (y mantener ?shop=ID)
-async function resolveShopId() {
-  // 1) Si viene ?shop=ID, usamos eso (compatibilidad)
-  const params = new URLSearchParams(window.location.search);
-  const shopParam = params.get("shop");
-  if (shopParam) return Number(shopParam);
+const $ = (id) => document.getElementById(id);
 
-  // 2) Si no, usamos el slug: /joacobarber
-  const parts = window.location.pathname.split("/").filter(Boolean);
-  const slug = parts[0]; // "joacobarber"
-  if (!slug) return null;
+let state = { barbershop: null, services: [], selectedTime: null };
 
-  const r = await fetch(`${API_BASE}/barbershops/slug/${encodeURIComponent(slug)}`);
-  const data = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error(data.error || "No se pudo resolver la barbería");
+function apiUrl(path) { return API + path; }
 
-  return Number(data.id);
+async function apiGet(path) {
+  const r = await fetch(apiUrl(path));
+  const t = await r.text();
+  let data;
+  try { data = JSON.parse(t); } catch { data = { raw: t }; }
+  if (!r.ok) throw new Error(data.error || "Error");
+  return data;
+}
+async function apiPost(path, body) {
+  const r = await fetch(apiUrl(path), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const t = await r.text();
+  let data;
+  try { data = JSON.parse(t); } catch { data = { raw: t }; }
+  if (!r.ok) throw new Error(data.error || "Error");
+  return data;
 }
 
-let barbershopId = null;
-
-const shopTitle = document.getElementById("shopTitle");
-const shopSub = document.getElementById("shopSub");
-const shopInfo = document.getElementById("shopInfo");
-const err = document.getElementById("err");
-
-const serviceSelect = document.getElementById("serviceSelect");
-const form = document.getElementById("form");
-const btn = document.getElementById("btn");
-const pricingBox = document.getElementById("pricingBox");
-
-function setErr(msg) {
-  err.textContent = msg || "";
-}
-
-function money(n) {
-  const v = Number(n || 0);
-  return v.toLocaleString("es-AR");
-}
-
-async function loadBarbershop() {
-  if (!barbershopId || Number.isNaN(barbershopId)) {
-    setErr("No se encontró barbería en la URL. Usá ?shop=ID o /slug");
-    shopTitle.textContent = "Barbería no encontrada";
-    return null;
-  }
-
-  // Como quizá no tengas GET /barbershops/:id, levantamos la lista y filtramos.
-  const r = await fetch(`${API_BASE}/barbershops`);
-  const data = await r.json().catch(() => null);
-
-  if (!r.ok || !Array.isArray(data)) {
-    throw new Error(data?.error || "No se pudo cargar la barbería.");
-  }
-
-  const shop = data.find((s) => Number(s.id) === barbershopId);
-  if (!shop) throw new Error("No existe esa barbería (shopId inválido).");
-
-  shopTitle.textContent = shop.name || "Barbería";
-  shopSub.textContent = shop.city || "";
-  shopInfo.textContent = `${shop.name || ""}${shop.city ? " · " + shop.city : ""}${
-    shop.address ? " · " + shop.address : ""
-  }`;
-
-  return shop;
-}
-
-async function loadServices() {
-  const r = await fetch(`${API_BASE}/services?barbershopId=${barbershopId}`);
-  const data = await r.json().catch(() => null);
-
-  if (!r.ok || !Array.isArray(data)) {
-    throw new Error(data?.error || "No se pudieron cargar los servicios.");
-  }
-
-  serviceSelect.innerHTML = "";
-  serviceSelect.disabled = false;
-
-  for (const s of data) {
-    const opt = document.createElement("option");
-    opt.value = s.id;
-    opt.textContent = `${s.name} — $${money(s.price)}`;
-    opt.dataset.price = s.price;
-    serviceSelect.appendChild(opt);
-  }
-
-  if (data.length === 0) {
-    const opt = document.createElement("option");
-    opt.value = "";
-    opt.textContent = "No hay servicios cargados";
-    serviceSelect.appendChild(opt);
-    serviceSelect.disabled = true;
-  }
-}
-
-function minTodayISO() {
+function todayISO() {
   const d = new Date();
-  d.setHours(0, 0, 0, 0);
-  return d.toISOString().slice(0, 10);
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,"0");
+  const dd = String(d.getDate()).padStart(2,"0");
+  return `${y}-${m}-${dd}`;
 }
 
-// ✅ init: primero resolvemos barbershopId (por ?shop o por slug)
-(async function init() {
-  try {
-    setErr("");
-    const dateInput = document.getElementById("date");
-    if (dateInput) dateInput.min = minTodayISO();
+function renderServices() {
+  const sel = $("serviceSelect");
+  sel.innerHTML = state.services.map(s =>
+    `<option value="${s.id}">${s.name} ($${s.price})</option>`
+  ).join("");
+}
 
-    barbershopId = await resolveShopId();
-    if (!barbershopId) throw new Error("No se encontró barbería en la URL");
+function renderSlots(slots) {
+  const box = $("slots");
+  state.selectedTime = null;
+  $("btnBook").disabled = true;
 
-    // a partir de acá tu código normal:
-    await loadBarbershop();
-    await loadServices();
-  } catch (e) {
-    console.error(e);
-    setErr(e.message || "Error cargando la página.");
-  }
-})();
-
-form.addEventListener("submit", async (e) => {
-  e.preventDefault();
-  setErr("");
-  pricingBox.style.display = "none";
-  pricingBox.innerHTML = "";
-
-  const serviceId = Number(serviceSelect.value);
-  const customerName = document.getElementById("customerName").value.trim();
-  const customerPhone = document.getElementById("customerPhone").value.trim();
-  const date = document.getElementById("date").value;
-  const time = document.getElementById("time").value;
-
-  if (!serviceId || !customerName || !customerPhone || !date || !time) {
-    setErr("Completá todos los campos.");
+  if (!slots.length) {
+    box.innerHTML = "";
+    $("slotHint").textContent = "No hay horarios disponibles para ese día.";
     return;
   }
 
-  btn.disabled = true;
-  btn.textContent = "Reservando...";
+  $("slotHint").textContent = "Elegí un horario:";
+  box.innerHTML = slots.map(t => `
+    <button class="btn" data-slot="${t}">${t}</button>
+  `).join("");
+
+  box.onclick = (e) => {
+    const b = e.target.closest("[data-slot]");
+    if (!b) return;
+    const t = b.dataset.slot;
+    state.selectedTime = t;
+
+    // marcar seleccionado
+    box.querySelectorAll("[data-slot]").forEach(x => x.classList.remove("primary"));
+    b.classList.add("primary");
+
+    $("btnBook").disabled = false;
+  };
+}
+
+async function init() {
+  if (!slug) {
+    $("shopTitle").textContent = "Falta slug";
+    $("shopMeta").textContent = "Usá: book.html?slug=barberrami";
+    $("btnLoad").disabled = true;
+    return;
+  }
+
+  // info barbería + servicios
+  const shop = await apiGet(`/public/${slug}/barbershop`);
+  state.barbershop = shop.item;
+
+  $("shopTitle").textContent = state.barbershop.name;
+  $("shopMeta").textContent = `${state.barbershop.city || ""} ${state.barbershop.address ? "• " + state.barbershop.address : ""}`.trim();
+
+  const services = await apiGet(`/public/${slug}/services`);
+  state.services = services.items || [];
+  renderServices();
+
+  // fecha default
+  $("dateInput").value = todayISO();
+
+  $("btnLoad").addEventListener("click", loadSlots);
+  $("btnBook").addEventListener("click", book);
+}
+
+async function loadSlots() {
+  const serviceId = $("serviceSelect").value;
+  const date = $("dateInput").value;
+  $("bookMsg").textContent = "";
 
   try {
-    const r = await fetch(`${API_BASE}/appointments`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        barbershopId,
-        serviceId,
-        customerName,
-        customerPhone,
-        date,
-        time,
-      }),
+    const data = await apiGet(`/public/${slug}/availability?serviceId=${encodeURIComponent(serviceId)}&date=${encodeURIComponent(date)}&step=15`);
+    renderSlots(data.slots || []);
+  } catch (e) {
+    $("slotHint").textContent = "Error cargando horarios: " + e.message;
+  }
+}
+
+async function book() {
+  const serviceId = Number($("serviceSelect").value);
+  const date = $("dateInput").value;
+  const time = state.selectedTime;
+  const customerName = $("nameInput").value.trim();
+  const customerPhone = $("phoneInput").value.trim();
+  const customerEmail = $("emailInput").value.trim();
+  const notes = $("notesInput").value.trim();
+
+  if (!time) return;
+
+  try {
+    const resp = await apiPost(`/public/${slug}/book`, {
+      serviceId,
+      date,
+      time,
+      customerName,
+      customerPhone,
+      customerEmail: customerEmail || null,
+      notes: notes || null,
     });
 
-    const data = await r.json().catch(() => ({}));
-
-    if (!r.ok || !data) {
-      setErr(data?.error || "No se pudo reservar.");
-      btn.disabled = false;
-      btn.textContent = "Confirmar reserva";
-      return;
-    }
-
-    // Mostramos pricing (según campos que devuelva tu API)
-    const depPct = data.depositPercentageAtBooking ?? data.depositPercentage ?? 0;
-    const depAmt = data.depositAmount ?? 0;
-    const fee = data.platformFee ?? 0;
-    const total = data.totalToPay ?? depAmt + fee;
-
-    pricingBox.style.display = "block";
-    pricingBox.innerHTML = `
-      <div><b>Reserva creada</b> (estado: ${data.status || "pending"} / ${data.paymentStatus || "unpaid"})</div>
-      <div>Seña (${depPct}%): <b>$${money(depAmt)}</b></div>
-      <div>Costo BarberCloud: <b>$${money(fee)}</b></div>
-      <div>Total a pagar ahora: <b>$${money(total)}</b></div>
-      <div class="muted" style="margin-top:6px;">Siguiente paso: botón “Pagar seña” con MercadoPago.</div>
-    `;
-
-    btn.textContent = "Reservado ✅";
-  } catch (err) {
-    console.error(err);
-    setErr("Error de red.");
-    btn.disabled = false;
-    btn.textContent = "Confirmar reserva";
+    $("bookMsg").textContent = `Listo ✅ Tu turno quedó pendiente. Código: #${resp.id}`;
+    $("btnBook").disabled = true;
+  } catch (e) {
+    $("bookMsg").textContent = "No se pudo reservar: " + e.message;
+    // refrescar slots por si cambió
+    loadSlots();
   }
+}
+
+init().catch(err => {
+  $("shopTitle").textContent = "Error";
+  $("shopMeta").textContent = err.message;
 });
