@@ -20,6 +20,13 @@ const $ = (id) => document.getElementById(id);
 
 let state = { barbershop: null, services: [], selectedTime: null };
 
+// ✅ A) NUEVO: habilitar/deshabilitar botón reservar según slot + nombre + teléfono
+function refreshBookButton() {
+  const name = $("nameInput").value.trim();
+  const phone = $("phoneInput").value.trim();
+  $("btnBook").disabled = !(state.selectedTime && name && phone);
+}
+
 function apiUrl(path) { return API + path; }
 
 async function apiGet(path) {
@@ -76,7 +83,7 @@ function renderServices() {
 function renderSlots(slots) {
   const box = $("slots");
   state.selectedTime = null;
-  $("btnBook").disabled = true;
+  refreshBookButton();
 
   if (!slots.length) {
     box.innerHTML = "";
@@ -86,20 +93,27 @@ function renderSlots(slots) {
 
   $("slotHint").textContent = "Elegí un horario:";
   box.innerHTML = slots.map(t => `
-    <button class="btn" data-slot="${t}">${t}</button>
+    <button class="btn" data-slot="${t}" aria-pressed="false">${t}</button>
   `).join("");
 
+  // ✅ B) NUEVO handler: deja el slot “fijo” visualmente + refresca botón
   box.onclick = (e) => {
     const b = e.target.closest("[data-slot]");
     if (!b) return;
+
     const t = b.dataset.slot;
     state.selectedTime = t;
 
-    // marcar seleccionado
-    box.querySelectorAll("[data-slot]").forEach(x => x.classList.remove("primary"));
-    b.classList.add("primary");
+    // marcar seleccionado (visual)
+    box.querySelectorAll("[data-slot]").forEach(x => {
+      x.classList.remove("primary", "is-selected");
+      x.setAttribute("aria-pressed", "false");
+    });
 
-    $("btnBook").disabled = false;
+    b.classList.add("primary", "is-selected");
+    b.setAttribute("aria-pressed", "true");
+
+    refreshBookButton();
   };
 }
 
@@ -137,11 +151,19 @@ async function init() {
     $("slotHint").textContent = "Elegí fecha y tocá “Ver horarios”.";
   });
 
+  // ✅ C) NUEVO: habilitar “Reservar” cuando corresponda
+  ["nameInput", "phoneInput"].forEach(id => {
+    $(id).addEventListener("input", refreshBookButton);
+  });
+
   // fecha default
   $("dateInput").value = todayISO();
 
   $("btnLoad").addEventListener("click", loadSlots);
   $("btnBook").addEventListener("click", book);
+
+  // estado inicial
+  refreshBookButton();
 }
 
 async function loadSlots() {
@@ -168,6 +190,13 @@ async function book() {
 
   if (!time) return;
 
+  // ✅ D) NUEVO: validar antes del try
+  if (!customerName || !customerPhone) {
+    $("bookMsg").textContent = "Completá nombre y teléfono.";
+    refreshBookButton();
+    return;
+  }
+
   try {
     const resp = await apiPost(`/public/${slug}/book`, {
       serviceId,
@@ -180,7 +209,8 @@ async function book() {
     });
 
     $("bookMsg").textContent = `Listo ✅ Tu turno quedó pendiente. Código: #${resp.id}`;
-    $("btnBook").disabled = true;
+    state.selectedTime = null;
+    refreshBookButton();
   } catch (e) {
     $("bookMsg").textContent = "No se pudo reservar: " + e.message;
     // refrescar slots por si cambió
