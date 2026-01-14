@@ -4,9 +4,8 @@
     { "source": "/admin", "destination": "/admin_v2.html" },
     { "source": "/signup", "destination": "/signup.html" },
     { "source": "/book", "destination": "/book.html" },
-
     { "source": "/b/:slug", "destination": "/book.html?slug=:slug" },
-
     { "source": "/:slug", "destination": "/book.html?slug=:slug" }
   ]
 }
+
