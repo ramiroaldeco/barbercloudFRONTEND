@@ -1,6 +1,6 @@
 const API = window.API_BASE || "https://barbercloud.onrender.com/api";
 
-// slug por ?slug=... o por path /barberrami
+// slug por ?slug=... o por path /barberramia
 function getSlug() {
   const qs = new URLSearchParams(location.search);
   const q = qs.get("slug");
@@ -222,3 +222,4 @@ init().catch(err => {
   $("shopTitle").textContent = "Error";
   $("shopMeta").textContent = err.message;
 });
+
