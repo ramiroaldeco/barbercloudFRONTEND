@@ -525,3 +525,47 @@ body.app {
     grid-template-columns:1fr;
   }
 }
+/* =========================
+   BOOKING (book.html)
+   ========================= */
+body[data-page="book"] .wrap { max-width: 960px; margin: 0 auto; padding: 18px; }
+
+body[data-page="book"] .card {
+  border-radius: 18px;
+  padding: 18px;
+}
+
+/* slots */
+body[data-page="book"] #slots { display:flex; flex-wrap:wrap; gap:10px; }
+
+body[data-page="book"] #slots .btn {
+  border-radius: 999px;
+  padding: 10px 14px;
+  min-width: 74px;
+  font-weight: 600;
+  opacity: 0.95;
+}
+
+/* ✅ seleccionado visible */
+body[data-page="book"] #slots .btn.primary,
+body[data-page="book"] #slots .btn.is-selected {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(0,0,0,.35);
+  outline: 2px solid rgba(255,255,255,.25);
+}
+
+/* cuando está deshabilitado reservar */
+body[data-page="book"] #btnBook:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* mini resumen pro */
+body[data-page="book"] #serviceSummary {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
