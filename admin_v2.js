@@ -72,10 +72,10 @@ function showView(route) {
     loadServices();
   }
   if (route === "horarios") {
-  if (pageTitle) pageTitle.textContent = "Plantilla Horaria";
-  if (pageSubtitle) pageSubtitle.textContent = "Horarios semanales";
-  loadWorkingHours();
-}
+    if (pageTitle) pageTitle.textContent = "Plantilla Horaria";
+    if (pageSubtitle) pageSubtitle.textContent = "Horarios semanales";
+    loadWorkingHours();
+  }
   if (route === "config") {
     if (pageTitle) pageTitle.textContent = "Configuración";
     if (pageSubtitle) pageSubtitle.textContent = "Datos de tu barbería";
@@ -663,6 +663,7 @@ $("btnReload")?.addEventListener("click", async () => {
   await loadShopHeader();
   showView(getRoute());
 });
+
 // ===============================
 // PLANTILLA HORARIA (PRO)
 // ===============================
@@ -756,6 +757,9 @@ async function loadWorkingHours() {
   }
 
   renderWorkingHours();
+
+  // ✅ 6.3 Llamarlo cuando entras a Plantilla Horaria
+  await loadBlockedTimes();
 
   document.getElementById("btnWhReset")?.addEventListener("click", () => {
     if (!confirm("¿Restablecer la plantilla a vacío?")) return;
@@ -999,6 +1003,107 @@ async function saveWorkingHours() {
   }
 }
 
+// ===============================
+// 6.2 BLOQUEOS / VACACIONES (admin)
+// Pegado en la parte de Plantilla Horaria o al final del archivo
+// ===============================
+async function loadBlockedTimes() {
+  const box = document.getElementById("blocksList");
+  if (!box) return;
+
+  box.innerHTML = `<div class="muted">Cargando bloqueos...</div>`;
+  try {
+    const data = await apiGet("/blocked-times/mine");
+    const items = data.items || [];
+
+    if (!items.length) {
+      box.innerHTML = `<div class="muted">No hay bloqueos.</div>`;
+      return;
+    }
+
+    box.innerHTML = `
+      <div style="display:flex;flex-direction:column;gap:10px">
+        ${items.map(b => {
+          const range = b.dateTo ? `${b.dateFrom} → ${b.dateTo}` : b.dateFrom;
+          const time = (b.startTime && b.endTime) ? ` • ${b.startTime}-${b.endTime}` : ` • Día completo`;
+          const reason = b.reason ? ` • ${escapeHtml(b.reason)}` : "";
+          return `
+            <div class="card" style="padding:12px;display:flex;justify-content:space-between;align-items:center;gap:12px">
+              <div>
+                <div><b>${range}</b>${time}${reason}</div>
+              </div>
+              <button class="btn" data-del-block="${b.id}">Eliminar</button>
+            </div>
+          `;
+        }).join("")}
+      </div>
+    `;
+
+    box.onclick = async (e) => {
+      const btn = e.target.closest("[data-del-block]");
+      if (!btn) return;
+      const id = btn.dataset.delBlock;
+
+      if (!confirm("¿Eliminar este bloqueo?")) return;
+      await apiDelete(`/blocked-times/mine/${id}`);
+      await loadBlockedTimes();
+    };
+
+  } catch (e) {
+    box.innerHTML = `<div class="muted">Error cargando bloqueos: ${escapeHtml(e.message)}</div>`;
+  }
+}
+
+async function openAddBlockModal() {
+  const body = `
+    <label class="muted">Desde (YYYY-MM-DD)</label>
+    <input id="blkFrom" class="input" type="date" />
+
+    <label class="muted" style="margin-top:10px;display:block">Hasta (opcional)</label>
+    <input id="blkTo" class="input" type="date" />
+
+    <div style="margin-top:10px" class="muted">Si no ponés horas, se bloquea el día completo.</div>
+
+    <div style="display:flex;gap:10px;margin-top:10px">
+      <div style="flex:1">
+        <label class="muted">Desde</label>
+        <input id="blkStart" class="input" type="time" />
+      </div>
+      <div style="flex:1">
+        <label class="muted">Hasta</label>
+        <input id="blkEnd" class="input" type="time" />
+      </div>
+    </div>
+
+    <label class="muted" style="margin-top:10px;display:block">Motivo (opcional)</label>
+    <input id="blkReason" class="input" placeholder="Vacaciones / médico / etc." />
+  `;
+
+  const res = await openModal({
+    title: "Nuevo bloqueo",
+    subtitle: "Esto se va a reflejar en los horarios disponibles del booking",
+    bodyHtml: body,
+    okText: "Guardar",
+  });
+  if (!res?.ok) return;
+
+  const dateFrom = document.getElementById("blkFrom")?.value;
+  const dateTo = document.getElementById("blkTo")?.value || null;
+  const startTime = document.getElementById("blkStart")?.value || null;
+  const endTime = document.getElementById("blkEnd")?.value || null;
+  const reason = document.getElementById("blkReason")?.value || null;
+
+  await apiPost("/blocked-times/mine", { dateFrom, dateTo, startTime, endTime, reason });
+  await loadBlockedTimes();
+}
+
+// Hook botón
+document.addEventListener("click", (e) => {
+  const b = e.target.closest("#btnAddBlock");
+  if (!b) return;
+  openAddBlockModal();
+});
+
 // init
 (async function init() {
   if (!getToken()) openLogin();
@@ -1006,4 +1111,3 @@ async function saveWorkingHours() {
   await loadShopHeader();
   showView(getRoute());
 })();
-
