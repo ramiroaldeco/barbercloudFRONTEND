@@ -6,49 +6,162 @@
   <title>Reservar turno - BarberCloud</title>
   <link rel="stylesheet" href="./styles.css" />
 </head>
+
 <body class="app" data-page="book">
-  <div class="wrap" style="max-width:960px;margin:0 auto;padding:18px">
-    <div class="card">
-      <h1 id="shopTitle" style="margin:0">Reservar turno</h1>
-      <p id="shopMeta" class="muted" style="margin:8px 0 0"></p>
+  <div class="wrap">
+    <!-- Header barber -->
+    <div class="book-card">
+      <!-- Mantengo tus IDs para que book.js siga andando -->
+      <h1 id="shopTitle" class="book-title">Cargando…</h1>
+      <div id="shopMeta" class="book-subtitle"></div>
+
+      <!-- Stepper -->
+      <div class="stepper" id="stepper">
+        <div class="step is-active" data-step="1"><span class="dot">1</span> Servicio</div>
+        <div class="step" data-step="2"><span class="dot">2</span> Horarios</div>
+        <div class="step" data-step="3"><span class="dot">3</span> Datos</div>
+        <div class="step" data-step="4"><span class="dot">4</span> Confirmar</div>
+      </div>
     </div>
 
-    <div class="card" style="margin-top:14px">
-      <h3 style="margin:0 0 10px">1) Elegí servicio y fecha</h3>
+    <div class="book-shell">
+      <!-- Wizard principal -->
+      <div class="wizard">
 
-      <label class="muted">Servicio</label>
-      <select id="serviceSelect" class="input"></select>
+        <!-- STEP 1 -->
+        <section class="book-card wizard-step is-visible" id="step1">
+          <h2 class="book-title">Elegí servicio y fecha</h2>
+          <p class="book-subtitle">Primero elegí qué te vas a hacer, después buscamos horarios disponibles.</p>
 
-      <label class="muted" style="margin-top:10px;display:block">Fecha</label>
-      <input id="dateInput" class="input" type="date"/>
+          <div class="field">
+            <label>Servicio</label>
+            <div class="select-wrap">
+              <!-- ID original -->
+              <select id="serviceSelect"></select>
+            </div>
+          </div>
 
-      <button id="btnLoad" class="btn primary" style="margin-top:12px">Ver horarios</button>
-    </div>
-	<div id="serviceSummary" class="muted" style="margin-top:10px"></div>
+          <div class="field">
+            <label>Fecha</label>
+            <!-- ID original -->
+            <input type="date" id="dateInput" />
+            <div class="hint">Elegí una fecha y tocá “Ver horarios”.</div>
+          </div>
 
-    <div class="card" style="margin-top:14px">
-      <h3 style="margin:0 0 10px">2) Horarios disponibles</h3>
-      <div id="slots" style="display:flex;flex-wrap:wrap;gap:10px"></div>
-      <div id="slotHint" class="muted" style="margin-top:10px"></div>
-    </div>
+          <!-- ID original -->
+          <div id="serviceSummary" class="summary-pill"></div>
 
-    <div class="card" style="margin-top:14px">
-      <h3 style="margin:0 0 10px">3) Tus datos</h3>
+          <div class="actions">
+            <!-- ID original que tu book.js ya usa -->
+            <button class="btn btn-primary" id="btnLoad">Ver horarios</button>
+          </div>
+        </section>
 
-      <label class="muted">Nombre</label>
-      <input id="nameInput" class="input" placeholder="Tu nombre"/>
+        <!-- STEP 2 -->
+        <section class="book-card wizard-step" id="step2">
+          <h2 class="book-title">Horarios disponibles</h2>
 
-      <label class="muted" style="margin-top:10px;display:block">Teléfono</label>
-      <input id="phoneInput" class="input" placeholder="351..." />
+          <!-- ID original -->
+          <p class="book-subtitle" id="slotHint">Elegí un horario para continuar.</p>
 
-      <label class="muted" style="margin-top:10px;display:block">Email (opcional)</label>
-      <input id="emailInput" class="input" placeholder="tu@email.com"/>
+          <!-- ID original -->
+          <div id="slots"></div>
 
-      <label class="muted" style="margin-top:10px;display:block">Nota (opcional)</label>
-      <input id="notesInput" class="input" placeholder="Ej: llego 10 min tarde" />
+          <div class="actions">
+            <!-- Estos IDs son nuevos (para tu futuro wizard JS). No rompen nada si book.js no los usa -->
+            <button class="btn btn-ghost" id="btnBackTo1" type="button">Volver</button>
+            <button class="btn btn-primary" id="btnGoTo3" type="button" disabled>Continuar</button>
+          </div>
+        </section>
 
-      <button id="btnBook" class="btn primary" style="margin-top:12px" disabled>Reservar</button>
-      <div id="bookMsg" class="muted" style="margin-top:10px"></div>
+        <!-- STEP 3 -->
+        <section class="book-card wizard-step" id="step3">
+          <h2 class="book-title">Tus datos</h2>
+          <p class="book-subtitle">Esto le llega a la barbería para confirmar tu turno.</p>
+
+          <div class="field">
+            <label>Nombre</label>
+            <!-- ID original -->
+            <input id="nameInput" placeholder="Tu nombre" />
+          </div>
+
+          <div class="field">
+            <label>Teléfono</label>
+            <!-- ID original -->
+            <input id="phoneInput" placeholder="351..." />
+          </div>
+
+          <div class="field">
+            <label>Email (opcional)</label>
+            <!-- ID original -->
+            <input id="emailInput" placeholder="tu@email.com" />
+          </div>
+
+          <div class="field">
+            <label>Nota (opcional)</label>
+            <!-- ID original (vos lo tenías antes) -->
+            <input id="notesInput" placeholder="Ej: llego 10 min tarde" />
+          </div>
+
+          <div class="actions">
+            <button class="btn btn-ghost" id="btnBackTo2" type="button">Volver</button>
+            <button class="btn btn-primary" id="btnGoTo4" type="button">Continuar</button>
+          </div>
+        </section>
+
+        <!-- STEP 4 -->
+        <section class="book-card wizard-step" id="step4">
+          <h2 class="book-title">Resumen y seña</h2>
+          <p class="book-subtitle">Revisá todo antes de confirmar.</p>
+
+          <div class="summary-pill" id="finalSummary">—</div>
+
+          <div class="paybox">
+            <div class="paytitle">Pago de seña</div>
+            <div class="hint">
+              Próximamente: Mercado Pago. Por ahora podés dejar este botón como “placeholder”.
+            </div>
+            <button class="btn btn-secondary" id="btnPayDeposit" type="button" disabled>
+              Pagar seña (próximamente)
+            </button>
+          </div>
+
+          <div class="actions">
+            <button class="btn btn-ghost" id="btnBackTo3" type="button">Volver</button>
+
+            <!-- ID original: tu book.js ya lo usa -->
+            <button class="btn btn-primary" id="btnBook" type="button">
+              Confirmar turno
+            </button>
+          </div>
+
+          <!-- ID original (antes era bookMsg) -->
+          <div id="bookMsg" class="hint" style="margin-top:10px"></div>
+        </section>
+      </div>
+
+      <!-- Resumen lateral fijo (confianza) -->
+      <aside class="book-card side">
+        <div class="book-title" style="font-size:1.05rem">Tu turno</div>
+        <div class="book-subtitle" style="margin-bottom:6px">Se actualiza en vivo.</div>
+
+        <div class="divider"></div>
+
+        <div class="kv">
+          <div class="k">Servicio</div><div class="v" id="sideService">—</div>
+          <div class="k">Fecha</div><div class="v" id="sideDate">—</div>
+          <div class="k">Hora</div><div class="v" id="sideTime">—</div>
+          <div class="k">Seña</div><div class="v" id="sideDeposit">—</div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="hint">
+          ✔️ Confirmación rápida<br/>
+          ✔️ Datos protegidos<br/>
+          ✔️ Turnos ordenados en agenda
+        </div>
+      </aside>
     </div>
   </div>
 
