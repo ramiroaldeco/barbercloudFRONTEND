@@ -568,4 +568,241 @@ body[data-page="book"] #serviceSummary {
   background: rgba(255,255,255,0.06);
   border: 1px solid rgba(255,255,255,0.08);
 }
+/* =========================
+   BOOKING PRO OVERRIDES (Wizard)
+   ========================= */
+body[data-page="book"]{
+  background:
+    radial-gradient(900px 540px at 20% -10%, rgba(34,211,238,.18), transparent 62%),
+    radial-gradient(700px 420px at 90% 10%, rgba(56,189,248,.14), transparent 60%),
+    radial-gradient(circle at top left, #111827 0, #020617 45%, #000 100%);
+}
+
+body[data-page="book"] .wrap{
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 22px 16px 60px;
+}
+
+body[data-page="book"] .book-shell{
+  display:grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  gap: 16px;
+  align-items:start;
+}
+@media (max-width: 980px){
+  body[data-page="book"] .book-shell{ grid-template-columns: 1fr; }
+}
+
+body[data-page="book"] .book-card{
+  background: rgba(15, 23, 42, 0.88);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-soft);
+  padding: 18px;
+}
+
+body[data-page="book"] .book-title{
+  margin: 0 0 6px;
+  font-size: 1.35rem;
+  font-weight: 650;
+  letter-spacing: .2px;
+}
+body[data-page="book"] .book-subtitle{
+  margin: 0 0 14px;
+  color: var(--muted);
+  font-size: .92rem;
+}
+
+body[data-page="book"] .stepper{
+  display:flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+body[data-page="book"] .step{
+  display:flex;
+  align-items:center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 999px;
+  background: rgba(34, 211, 238, 0.08);
+  border: 1px solid rgba(34, 211, 238, 0.18);
+  color: rgba(229,231,235,.92);
+  font-size: .86rem;
+}
+body[data-page="book"] .step .dot{
+  width: 26px; height: 26px;
+  border-radius: 999px;
+  display:inline-flex;
+  align-items:center; justify-content:center;
+  background: rgba(34, 211, 238, 0.18);
+  color: var(--accent);
+  font-weight: 700;
+}
+body[data-page="book"] .step.is-active{
+  background: rgba(34, 211, 238, 0.14);
+  border-color: rgba(34, 211, 238, 0.32);
+}
+body[data-page="book"] .step.is-done{
+  background: rgba(51,209,122,0.12);
+  border-color: rgba(51,209,122,0.22);
+}
+body[data-page="book"] .step.is-done .dot{
+  background: rgba(51,209,122,0.20);
+  color: var(--ok, #33D17A);
+}
+
+body[data-page="book"] .wizard{
+  position: relative;
+}
+body[data-page="book"] .wizard-step{
+  display:none;
+  animation: stepIn .28s ease both;
+}
+body[data-page="book"] .wizard-step.is-visible{
+  display:block;
+}
+@keyframes stepIn{
+  from{ opacity:0; transform: translateY(10px); }
+  to{ opacity:1; transform: translateY(0); }
+}
+
+body[data-page="book"] .field{
+  display:flex;
+  flex-direction:column;
+  gap: 6px;
+  margin: 10px 0;
+}
+body[data-page="book"] label{
+  color: rgba(229,231,235,.92);
+  font-size: .88rem;
+}
+body[data-page="book"] .hint{
+  color: var(--muted);
+  font-size: .84rem;
+}
+
+/* Inputs / Select PRO */
+body[data-page="book"] input,
+body[data-page="book"] select{
+  appearance: none;
+  width: 100%;
+  padding: 12px 12px;
+  border-radius: 14px;
+  background: rgba(2, 6, 23, 0.72);
+  color: var(--text);
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  outline: none;
+  transition: border-color .15s ease, box-shadow .15s ease, transform .08s ease;
+}
+body[data-page="book"] select{
+  padding-right: 44px;
+  background-image:
+    linear-gradient(135deg, rgba(34,211,238,.35), rgba(56,189,248,.25)),
+    radial-gradient(circle at 85% 50%, rgba(34,211,238,.55) 0, rgba(34,211,238,0) 55%);
+  background-repeat: no-repeat;
+  background-size: 0 0, 0 0; /* se activa con :focus para que no moleste */
+}
+body[data-page="book"] select:focus{
+  border-color: rgba(34,211,238,.55);
+  box-shadow: 0 0 0 4px rgba(34,211,238,.12);
+}
+body[data-page="book"] input:focus{
+  border-color: rgba(34,211,238,.55);
+  box-shadow: 0 0 0 4px rgba(34,211,238,.12);
+}
+body[data-page="book"] .select-wrap{
+  position: relative;
+}
+body[data-page="book"] .select-wrap:after{
+  content:"";
+  position:absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px; height: 18px;
+  opacity:.9;
+  pointer-events:none;
+  background: radial-gradient(circle at 35% 35%, var(--accent), #38bdf8);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M7 10l5 5 5-5z'/%3E%3C/svg%3E") center/contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M7 10l5 5 5-5z'/%3E%3C/svg%3E") center/contain no-repeat;
+}
+
+/* Slots premium */
+body[data-page="book"] #slots{
+  display:flex;
+  flex-wrap:wrap;
+  gap: 10px;
+  margin-top: 10px;
+}
+body[data-page="book"] #slots .btn{
+  background: rgba(34, 211, 238, 0.10);
+  color: rgba(229,231,235,.92);
+  border: 1px solid rgba(34, 211, 238, 0.20);
+  box-shadow: 0 10px 24px rgba(0,0,0,.25);
+  padding: 10px 14px;
+  min-width: 78px;
+}
+body[data-page="book"] #slots .btn:hover{
+  transform: translateY(-1px);
+  background: rgba(34, 211, 238, 0.14);
+}
+body[data-page="book"] #slots .btn.is-selected,
+body[data-page="book"] #slots .btn.primary{
+  background: linear-gradient(135deg, var(--accent), #38bdf8);
+  color: #020617;
+  border-color: rgba(255,255,255,.22);
+}
+
+/* Barra resumen */
+body[data-page="book"] .summary-pill{
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.10);
+  color: rgba(229,231,235,.92);
+}
+
+/* CTA row */
+body[data-page="book"] .actions{
+  display:flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+body[data-page="book"] .btn:active{ transform: translateY(0); }
+body[data-page="book"] .btn[disabled]{ opacity:.55; cursor:not-allowed; }
+
+/* Side panel (resumen fijo) */
+body[data-page="book"] .side{
+  position: sticky;
+  top: 86px;
+}
+body[data-page="book"] .side .kv{
+  display:grid;
+  grid-template-columns: 120px 1fr;
+  gap: 8px 10px;
+  margin-top: 10px;
+  font-size: .9rem;
+}
+body[data-page="book"] .side .k{ color: var(--muted); }
+body[data-page="book"] .side .v{ color: rgba(229,231,235,.95); }
+body[data-page="book"] .paybox{
+  margin-top: 14px;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px dashed rgba(34,211,238,.35);
+  background: rgba(34,211,238,.08);
+}
+body[data-page="book"] .paybox .paytitle{
+  font-weight: 650;
+  margin-bottom: 6px;
+}
+body[data-page="book"] .divider{
+  height: 1px;
+  background: rgba(148,163,184,.16);
+  margin: 14px 0;
+}
 
