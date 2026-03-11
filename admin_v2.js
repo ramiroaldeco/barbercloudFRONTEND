@@ -84,6 +84,7 @@ function showView(route) {
   if (route === "clientes") {
     if (pageTitle) pageTitle.textContent = "Clientes";
     if (pageSubtitle) pageSubtitle.textContent = "Historial y búsqueda";
+    loadClients();
   }
 }
 
@@ -656,6 +657,171 @@ function escapeHtml(str) {
 }
 function escapeAttr(str) {
   return String(str).replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+// ---- Clientes ----
+async function loadClients() {
+  const tbody = document.querySelector("#clientsTable tbody");
+  const empty = $("clientsEmpty");
+  const q = (safeVal("qClients", "") || "").trim();
+
+  if (tbody) tbody.innerHTML = "";
+  if (empty) empty.style.display = "none";
+
+  try {
+    const params = new URLSearchParams();
+    if (q) params.set("q", q);
+
+    const data = await apiGet(`/clients/mine?${params.toString()}`);
+    const items = data.items || [];
+
+    if (!items.length) {
+      if (empty) {
+        empty.style.display = "block";
+        empty.textContent = q ? "No se encontraron clientes." : "No hay clientes todavía.";
+      }
+      return;
+    }
+
+    for (const c of items) {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${escapeHtml(c.customerName || "")}</td>
+        <td>${escapeHtml(c.customerPhone || "")}</td>
+        <td>${escapeHtml(c.customerEmail || "—")}</td>
+        <td>${c.totalAppointments || 0}</td>
+        <td>${c.confirmedAppointments || 0}</td>
+        <td>${escapeHtml(c.lastDate || "—")}</td>
+      `;
+      tbody?.appendChild(tr);
+    }
+  } catch (e) {
+    if (empty) {
+      empty.style.display = "block";
+      empty.textContent = "Error cargando clientes: " + e.message;
+    }
+  }
+}
+
+$("btnSearchClients")?.addEventListener("click", loadClients);
+
+// ---- Calendar Tab Toggle ----
+let currentTab = "list";
+
+document.querySelector(".tabs")?.addEventListener("click", (e) => {
+  const tab = e.target.closest(".tab");
+  if (!tab) return;
+
+  const mode = tab.dataset.tab;
+  if (!mode) return;
+
+  currentTab = mode;
+
+  document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+  tab.classList.add("active");
+
+  const tableWrap = document.querySelector("#view-agenda .table-wrap");
+  const filtersEl = document.querySelector("#view-agenda .filters");
+  const emptyEl = $("appointmentsEmpty");
+  const calEl = $("calendarView");
+
+  if (mode === "list") {
+    if (tableWrap) tableWrap.style.display = "block";
+    if (filtersEl) filtersEl.style.display = "flex";
+    if (emptyEl) emptyEl.style.display = "";
+    if (calEl) calEl.style.display = "none";
+    loadAppointments();
+  } else {
+    if (tableWrap) tableWrap.style.display = "none";
+    if (filtersEl) filtersEl.style.display = "none";
+    if (emptyEl) emptyEl.style.display = "none";
+    if (calEl) calEl.style.display = "block";
+    renderCalendar();
+  }
+});
+
+// ---- Calendar Render ----
+let calWeekOffset = 0;
+
+function getWeekDates(offset = 0) {
+  const now = new Date();
+  const day = now.getDay(); // 0=Sun
+  const mon = new Date(now);
+  mon.setDate(now.getDate() - (day === 0 ? 6 : day - 1) + offset * 7);
+
+  const dates = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(mon);
+    d.setDate(mon.getDate() + i);
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    dates.push({ date: `${yyyy}-${mm}-${dd}`, dayName: d.toLocaleDateString("es-AR", { weekday: "short" }), dayNum: dd });
+  }
+  return dates;
+}
+
+async function renderCalendar() {
+  const cal = $("calendarView");
+  if (!cal) return;
+
+  const dates = getWeekDates(calWeekOffset);
+  const from = dates[0].date;
+  const to = dates[6].date;
+
+  let items = [];
+  try {
+    const data = await apiGet(`/appointments?from=${from}&to=${to}`);
+    items = data.items || data || [];
+  } catch (e) {
+    cal.innerHTML = `<div class="muted">Error cargando turnos: ${escapeHtml(e.message)}</div>`;
+    return;
+  }
+
+  // Group by date+hour
+  const grid = {};
+  for (const a of items) {
+    if (a.status === "canceled") continue;
+    const hour = (a.time || "00:00").slice(0, 2);
+    const key = `${a.date}_${hour}`;
+    if (!grid[key]) grid[key] = [];
+    grid[key].push(a);
+  }
+
+  const hours = [];
+  for (let h = 8; h <= 21; h++) hours.push(String(h).padStart(2, "0"));
+
+  const headerCells = dates.map(d => `<th style="text-align:center;min-width:100px">${d.dayName}<br/><b>${d.dayNum}</b></th>`).join("");
+
+  const rows = hours.map(h => {
+    const cells = dates.map(d => {
+      const key = `${d.date}_${h}`;
+      const appts = grid[key] || [];
+      const content = appts.map(a => {
+        const badge = a.status === "confirmed" ? "good" : "warn";
+        return `<div class="badge ${badge}" style="font-size:11px;margin:2px 0;display:block">${escapeHtml(a.customerName || "?")} ${escapeHtml(a.time || "")}</div>`;
+      }).join("");
+      return `<td style="vertical-align:top;padding:6px">${content}</td>`;
+    }).join("");
+    return `<tr><td style="color:var(--muted);font-size:12px;white-space:nowrap">${h}:00</td>${cells}</tr>`;
+  }).join("");
+
+  cal.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:10px;flex-wrap:wrap">
+      <button class="btn" id="calPrev">◀ Anterior</button>
+      <span><b>${dates[0].date}</b> — <b>${dates[6].date}</b></span>
+      <button class="btn" id="calNext">Siguiente ▶</button>
+    </div>
+    <div class="table-wrap">
+      <table class="table" style="min-width:900px">
+        <thead><tr><th style="width:60px">Hora</th>${headerCells}</tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+  `;
+
+  $("calPrev")?.addEventListener("click", () => { calWeekOffset--; renderCalendar(); });
+  $("calNext")?.addEventListener("click", () => { calWeekOffset++; renderCalendar(); });
 }
 
 // botones top

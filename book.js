@@ -54,14 +54,16 @@ function updateSideSummary() {
   const date = $("dateInput")?.value || "";
   const time = state.selectedTime || "";
 
-  const pct = state.barbershop?.defaultDepositPercentage ?? 15;
+  const pct = s?.depositPercentage ?? state.barbershop?.defaultDepositPercentage ?? 15;
   const price = s?.price ?? 0;
   const deposit = Math.round((price * pct) / 100);
+  const fee = state.barbershop?.platformFee ?? 0;
+  const total = deposit + fee;
 
   safeText($("sideService"), s ? `${s.name} ($${s.price})` : "—");
   safeText($("sideDate"), date || "—");
   safeText($("sideTime"), time || "—");
-  safeText($("sideDeposit"), s ? `$${deposit} (${pct}%)` : "—");
+  safeText($("sideDeposit"), s ? `$${total} (seña $${deposit} + fee $${fee})` : "—");
 }
 
 function renderFinalSummary() {
@@ -69,16 +71,21 @@ function renderFinalSummary() {
   const date = $("dateInput")?.value || "";
   const time = state.selectedTime || "";
 
-  const pct = state.barbershop?.defaultDepositPercentage ?? 15;
+  const pct = s?.depositPercentage ?? state.barbershop?.defaultDepositPercentage ?? 15;
   const price = s?.price ?? 0;
   const deposit = Math.round((price * pct) / 100);
+  const fee = state.barbershop?.platformFee ?? 0;
+  const total = deposit + fee;
 
   const box = $("finalSummary");
   if (box) {
     box.innerHTML = `
       <div><b>Servicio:</b> ${s?.name ?? "—"} (${s?.durationMinutes ?? "—"} min)</div>
       <div><b>Fecha:</b> ${date || "—"} • <b>Hora:</b> ${time || "—"}</div>
-      <div style="margin-top:8px"><b>Precio:</b> $${price} • <b>Seña:</b> $${deposit} (${pct}%)</div>
+      <div style="margin-top:8px"><b>Precio:</b> $${price}</div>
+      <div><b>Seña:</b> $${deposit} (${pct}%)</div>
+      <div><b>Fee plataforma:</b> $${fee}</div>
+      <div style="margin-top:4px"><b>Total a pagar ahora:</b> $${total}</div>
     `;
   }
 
@@ -129,13 +136,15 @@ function renderServiceSummary() {
   const s = state.services.find(x => x.id === id);
   if (!s) return;
 
-  const pct = state.barbershop?.defaultDepositPercentage ?? 15;
+  const pct = s.depositPercentage ?? state.barbershop?.defaultDepositPercentage ?? 15;
   const deposit = Math.round((s.price * pct) / 100);
+  const fee = state.barbershop?.platformFee ?? 0;
+  const total = deposit + fee;
 
   const el = $("serviceSummary");
   if (el) {
     el.innerHTML =
-      `Duración: <b>${s.durationMinutes} min</b> • Precio: <b>$${s.price}</b> • Seña aprox: <b>$${deposit}</b> (${pct}%)`;
+      `Duración: <b>${s.durationMinutes} min</b> • Precio: <b>$${s.price}</b> • Seña: <b>$${deposit}</b> (${pct}%) + fee $${fee} = <b>$${total}</b>`;
   }
 
   updateSideSummary();

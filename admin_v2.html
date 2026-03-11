@@ -148,6 +148,9 @@
               <div class="empty" id="appointmentsEmpty" style="display:none;">
                 No tenés turnos para este rango.
               </div>
+
+              <!-- Calendario semanal -->
+              <div id="calendarView" style="display:none;"></div>
             </div>
           </div>
         </div>
@@ -248,11 +251,30 @@
             <div class="card-head">
               <div>
                 <h2>Clientes</h2>
-                <p class="muted">Placeholder por ahora</p>
+                <p class="muted">Historial y búsqueda de clientes</p>
+              </div>
+              <div class="filters">
+                <input class="input" id="qClients" placeholder="Buscar por nombre o teléfono..." />
+                <button class="btn" id="btnSearchClients">Buscar</button>
               </div>
             </div>
             <div class="card-body">
-              <div class="muted">La armamos después de Agenda + Servicios.</div>
+              <div class="table-wrap">
+                <table class="table" id="clientsTable">
+                  <thead>
+                    <tr>
+                      <th>Nombre</th>
+                      <th>Teléfono</th>
+                      <th>Email</th>
+                      <th>Turnos</th>
+                      <th>Confirmados</th>
+                      <th>Última visita</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+              <div class="empty" id="clientsEmpty" style="display:none;">No hay clientes todavía.</div>
             </div>
           </div>
         </div>

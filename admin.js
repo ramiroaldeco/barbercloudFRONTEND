@@ -29,7 +29,7 @@ function setMsg(el, text, ok = true) {
 }
 
 function getToken() {
-  return localStorage.getItem("bc_token") || "";
+  return localStorage.getItem("bc_token") || localStorage.getItem("token") || "";
 }
 
 function setToken(t) {
