@@ -1398,6 +1398,10 @@ $("btnNewMember")?.addEventListener("click", async () => {
   if (!res?.ok) return;
   
   const name = $("memName")?.value || "";
+  if (!name.trim()) {
+    alert("El nombre es obligatorio.");
+    return;
+  }
   const role = $("memRole")?.value || "";
   const fileInput = $("memFile");
   
@@ -1488,6 +1492,10 @@ $("membersGrid")?.addEventListener("click", async (e) => {
     if (!res?.ok) return;
     
     const name = $("memName")?.value || "";
+    if (!name.trim()) {
+      alert("El nombre es obligatorio.");
+      return;
+    }
     const role = $("memRole")?.value || "";
     let avatarBase64 = undefined;
     const fileInput = $("memFile");
