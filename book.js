@@ -18,7 +18,7 @@ const slug = getSlug();
 
 const $ = (id) => document.getElementById(id);
 
-let state = { barbershop: null, services: [], selectedTime: null };
+let state = { barbershop: null, services: [], members: [], selectedTime: null };
 
 // =====================
 // WIZARD UI (NUEVO)
@@ -51,6 +51,7 @@ function safeText(el, txt) {
 
 function updateSideSummary() {
   const s = state.services.find(x => x.id === Number($("serviceSelect")?.value));
+  const b = state.members.find(x => x.id === Number($("barberSelect")?.value));
   const date = $("dateInput")?.value || "";
   const time = state.selectedTime || "";
 
@@ -62,12 +63,13 @@ function updateSideSummary() {
 
   safeText($("sideService"), s ? `${s.name} ($${s.price})` : "—");
   safeText($("sideDate"), date || "—");
-  safeText($("sideTime"), time || "—");
+  safeText($("sideTime"), time && b ? `${time} con ${b.name}` : "—");
   safeText($("sideDeposit"), s ? `$${total} (seña $${deposit} + fee $${fee})` : "—");
 }
 
 function renderFinalSummary() {
   const s = state.services.find(x => x.id === Number($("serviceSelect")?.value));
+  const b = state.members.find(x => x.id === Number($("barberSelect")?.value));
   const date = $("dateInput")?.value || "";
   const time = state.selectedTime || "";
 
@@ -81,6 +83,7 @@ function renderFinalSummary() {
   if (box) {
     box.innerHTML = `
       <div><b>Servicio:</b> ${s?.name ?? "—"} (${s?.durationMinutes ?? "—"} min)</div>
+      <div><b>Barbero:</b> ${b?.name ?? "—"}</div>
       <div><b>Fecha:</b> ${date || "—"} • <b>Hora:</b> ${time || "—"}</div>
       <div style="margin-top:8px"><b>Precio:</b> $${price}</div>
       <div><b>Seña:</b> $${deposit} (${pct}%)</div>
@@ -154,12 +157,34 @@ function renderServices() {
   const sel = $("serviceSelect");
   if (!sel) return;
 
-  sel.innerHTML = state.services.map(s =>
+  sel.innerHTML = `<option value="">-- Elegí un servicio --</option>` + state.services.map(s =>
     `<option value="${s.id}">${s.name} ($${s.price})</option>`
   ).join("");
 
-  // ✅ resumen del servicio apenas se renderiza el select
   renderServiceSummary();
+}
+
+function renderBarbers() {
+  const selService = Number($("serviceSelect")?.value);
+  const selBarber = $("barberSelect");
+  if (!selBarber) return;
+  
+  selBarber.innerHTML = `<option value="">-- Elegí un barbero --</option>`;
+  selBarber.disabled = true;
+  
+  if (!selService) return;
+
+  const validMembers = state.members.filter(m => m.services.find(s => s.id === selService));
+  
+  if (!validMembers.length) {
+    selBarber.innerHTML = `<option value="">-- Ningún barbero hace este servicio --</option>`;
+    return;
+  }
+  
+  selBarber.innerHTML = `<option value="">-- Elegí un barbero --</option>` + validMembers.map(m =>
+    `<option value="${m.id}">${m.name}</option>`
+  ).join("");
+  selBarber.disabled = false;
 }
 
 function renderSlots(slots) {
@@ -232,19 +257,32 @@ async function init() {
 
   const services = await apiGet(`/public/${slug}/services`);
   state.services = services.items || [];
+  const members = await apiGet(`/public/${slug}/members`);
+  state.members = members.members || [];
+  
   renderServices();
+  renderBarbers();
 
   // ✅ init: resumen + hint pro
   renderServiceSummary();
   if ($("slotHint")) $("slotHint").textContent = "Elegí fecha y tocá “Ver horarios”.";
 
-  // ✅ cada vez que cambie el servicio: refresca resumen y resetea slots
+  // ✅ cada vez que cambie el servicio: refresca resumen, barberos y resetea slots
   const sel = $("serviceSelect");
   if (sel) {
     sel.addEventListener("change", () => {
       renderServiceSummary();
+      renderBarbers();
       renderSlots([]);
       if ($("slotHint")) $("slotHint").textContent = "Elegí fecha y tocá “Ver horarios”.";
+    });
+  }
+
+  // Si cambia el barbero, reseteamos slots
+  const sel2 = $("barberSelect");
+  if (sel2) {
+    sel2.addEventListener("change", () => {
+      renderSlots([]);
     });
   }
 
@@ -263,6 +301,10 @@ async function init() {
   // Si tenés IDs viejos, soportamos ambos:
   const btnFetch = $("btnFetchSlots") || $("btnLoad");
   if (btnFetch) btnFetch.addEventListener("click", async () => {
+    const sId = $("serviceSelect")?.value;
+    const bId = $("barberSelect")?.value;
+    if (!sId || !bId) return alert("Por favor, elegí un Servicio y un Barbero válido.");
+    
     await loadSlots();
     showStep(2);
   });
@@ -303,13 +345,14 @@ async function init() {
 
 async function loadSlots() {
   const serviceId = $("serviceSelect")?.value;
+  const barberId = $("barberSelect")?.value;
   const date = $("dateInput")?.value;
 
   if ($("bookMsg")) $("bookMsg").textContent = "";
 
   try {
     const data = await apiGet(
-      `/public/${slug}/availability?serviceId=${encodeURIComponent(serviceId)}&date=${encodeURIComponent(date)}&step=15`
+      `/public/${slug}/availability?barberId=${encodeURIComponent(barberId)}&serviceId=${encodeURIComponent(serviceId)}&date=${encodeURIComponent(date)}`
     );
     renderSlots(data.slots || []);
   } catch (e) {
@@ -337,6 +380,7 @@ async function book() {
 
   try {
     const resp = await apiPost(`/public/${slug}/book`, {
+      barberId: Number($("barberSelect")?.value),
       serviceId,
       date,
       time,

@@ -40,7 +40,6 @@ const views = {
   agenda: $("view-agenda"),
   clientes: $("view-clientes"),
   servicios: $("view-servicios"),
-  horarios: $("view-horarios"),
   config: $("view-config"),
   miembros: $("view-miembros"),
 };
@@ -71,11 +70,6 @@ function showView(route) {
     if (pageTitle) pageTitle.textContent = "Servicios";
     if (pageSubtitle) pageSubtitle.textContent = "Precios, duración y seña";
     loadServices();
-  }
-  if (route === "horarios") {
-    if (pageTitle) pageTitle.textContent = "Plantilla Horaria";
-    if (pageSubtitle) pageSubtitle.textContent = "Horarios semanales";
-    loadWorkingHours();
   }
   if (route === "config") {
     if (pageTitle) pageTitle.textContent = "Configuración";
@@ -347,75 +341,85 @@ document.querySelector("#appointmentsTable")?.addEventListener("click", async (e
 // - valida que los inputs existan antes de leer values (safeVal ya lo hace)
 async function openAddTurnModal() {
   try {
-    // 1) pedir lista de servicios (del dueño)
-    const resp = await apiGet("/services/mine");
-    const services = resp.items || resp || [];
+    // Necesitamos el slug de la barberia para llamar al endpoint público de disponibilidad
+    const shop = await apiGet("/barbershops/mine");
+    if (!shop.slug) {
+       alert("Tu barbería necesita configurar un Slug (Link público) en la sección Configuración primero.");
+       location.hash = "#/config";
+       return;
+    }
 
-    if (!services.length) {
-      alert("Primero creá al menos 1 servicio en la sección 'Servicios'.");
+    const { items: services } = await apiGet("/services/mine");
+    if (!services || !services.length) {
+      alert("Primero creá al menos 1 servicio.");
       location.hash = "#/servicios";
       return;
     }
 
-    const optionsHtml = services
-      .map(
-        (s) =>
-          `<option value="${s.id}">${escapeHtml(s.name)} ($${escapeHtml(String(s.price))})</option>`
-      )
-      .join("");
+    const { members } = await apiGet("/members");
+    const activeMembers = (members || []).filter(m => m.isActive);
+    if (!activeMembers.length) {
+      alert("No tenés barberos activos. Agregá uno en la sección Equipo.");
+      location.hash = "#/miembros";
+      return;
+    }
 
-    const today = new Date();
-    const yyyy = today.getFullYear();
-    const mm = String(today.getMonth() + 1).padStart(2, "0");
-    const dd = String(today.getDate()).padStart(2, "0");
-    const todayStr = `${yyyy}-${mm}-${dd}`;
+    const todayStr = new Date().toISOString().split("T")[0];
 
     const result = await openModal({
       title: "Nuevo turno",
-      subtitle: "Cargá cliente, fecha y servicio",
+      subtitle: "Secuencia estricta de asignación",
       bodyHtml: `
-        <label class="label">Fecha</label>
-        <input class="input" id="apptDate" type="date" value="${todayStr}" />
-
-        <label class="label">Hora</label>
-        <input class="input" id="apptTime" type="time" value="10:00" />
-
-        <label class="label">Servicio</label>
-        <select class="input" id="apptService">
-          ${optionsHtml}
-        </select>
-
-        <label class="label">Cliente</label>
+        <label class="label">1. Cliente</label>
         <input class="input" id="apptName" placeholder="Nombre y apellido" />
 
-        <label class="label">Teléfono</label>
-        <input class="input" id="apptPhone" placeholder="3534..." />
+        <label class="label">2. Fecha</label>
+        <input class="input" id="apptDate" type="date" value="${todayStr}" />
+
+        <label class="label">3. Servicio</label>
+        <select class="input" id="apptService">
+          <option value="">-- Elegí un servicio --</option>
+          ${services.map(s => `<option value="${s.id}">${escapeHtml(s.name)} ($${s.price})</option>`).join("")}
+        </select>
+
+        <label class="label">4. Barbero</label>
+        <select class="input" id="apptBarber" disabled>
+          <option value="">-- Primero elegí un servicio --</option>
+        </select>
+
+        <label class="label">5. Horario disponible</label>
+        <select class="input" id="apptTime" disabled>
+          <option value="">-- Primero completá los pasos anteriores --</option>
+        </select>
+
+        <label class="label">6. Teléfono (opcional)</label>
+        <input class="input" id="apptPhone" placeholder="Opcional..." />
+        
+        <div id="apptLoading" class="hint" style="display:none; color:var(--cyan); margin-top:8px;">Calculando horarios...</div>
       `,
       okText: "Crear turno",
     });
 
     if (!result?.ok) return;
 
-    // 2) leer valores (safeVal valida existencia del input)
-    const date = String(safeVal("apptDate", "")).trim();
-    const time = String(safeVal("apptTime", "")).trim();
-    const serviceIdRaw = safeVal("apptService", "");
-    const serviceId = Number(serviceIdRaw);
-    const customerName = String(safeVal("apptName", "")).trim();
-    const customerPhone = String(safeVal("apptPhone", "")).trim();
+    // Leer valores
+    const customerName = String(safeVal("apptName")).trim();
+    const date = String(safeVal("apptDate")).trim();
+    const serviceId = Number(safeVal("apptService"));
+    const barberId = Number(safeVal("apptBarber"));
+    const time = String(safeVal("apptTime")).trim();
+    const customerPhone = String(safeVal("apptPhone")).trim();
 
-    if (!date || !time || !serviceIdRaw || Number.isNaN(serviceId)) {
-      alert("Completá fecha, hora y servicio.");
-      return;
-    }
-    if (!customerName) {
-      alert("Completá el nombre del cliente.");
-      return;
-    }
+    if (!customerName) return alert("Completá el nombre del cliente.");
+    if (!date) return alert("Seleccioná la fecha.");
+    if (!serviceId) return alert("Seleccioná el servicio.");
+    if (!barberId) return alert("Seleccioná el barbero.");
+    if (!time) return alert("Seleccioná el horario asignado.");
 
-    // 3) crear turno desde el admin (dueño) ✅ /appointments/owner
+    // POST /appointments/owner
     await apiPost("/appointments/owner", {
       serviceId,
+      barberId,
       date,
       time,
       customerName,
@@ -426,9 +430,84 @@ async function openAddTurnModal() {
     await loadAppointments();
     alert("Turno creado ✅");
   } catch (e) {
-    alert("Error creando turno: " + e.message);
+    alert("Error: " + e.message);
   }
 }
+
+// Reactividad del Modal de Creación
+document.addEventListener("change", async (e) => {
+  if (e.target.id === "apptService" || e.target.id === "apptDate") {
+     const srvSelect = document.getElementById("apptService");
+     const barberSelect = document.getElementById("apptBarber");
+     const timeSelect = document.getElementById("apptTime");
+     if (!srvSelect || !barberSelect || !timeSelect) return;
+
+     const srvId = Number(srvSelect.value);
+     const dateVal = document.getElementById("apptDate").value;
+
+     timeSelect.innerHTML = `<option value="">-- Seleccioná barbero --</option>`;
+     timeSelect.disabled = true;
+
+     if (!srvId || !dateVal) {
+        barberSelect.innerHTML = `<option value="">-- Faltan datos --</option>`;
+        barberSelect.disabled = true;
+        return;
+     }
+
+     try {
+       const { members } = await apiGet("/members");
+       // Filtrar barberos activos que brinden este servicio
+       const validBarbers = (members || []).filter(m => 
+          m.isActive && m.services.find(s => s.id === srvId)
+       );
+       
+       if (!validBarbers.length) {
+          barberSelect.innerHTML = `<option value="">-- Ningún barbero hace ese servicio --</option>`;
+          barberSelect.disabled = true;
+          return;
+       }
+       
+       barberSelect.innerHTML = `<option value="">-- Elegí un barbero --</option>` +
+          validBarbers.map(b => `<option value="${b.id}">${escapeHtml(b.name)}</option>`).join("");
+       barberSelect.disabled = false;
+     } catch(err) {
+       console.error("Error filtrando barberos", err);
+     }
+  }
+
+  if (e.target.id === "apptBarber" || (e.target.id === "apptDate" && document.getElementById("apptBarber")?.value)) {
+     const srvId = Number(document.getElementById("apptService").value);
+     const brbId = Number(document.getElementById("apptBarber").value);
+     const dateVal = document.getElementById("apptDate").value;
+     const timeSelect = document.getElementById("apptTime");
+     const loadHint = document.getElementById("apptLoading");
+     
+     if (!srvId || !brbId || !dateVal || !timeSelect) return;
+     
+     timeSelect.disabled = true;
+     timeSelect.innerHTML = `<option value="">Cargando...</option>`;
+     if (loadHint) loadHint.style.display = "block";
+
+     try {
+       const shop = await apiGet("/barbershops/mine");
+       const { slots } = await apiGet(`/public/${shop.slug}/availability?barberId=${brbId}&serviceId=${srvId}&date=${dateVal}`);
+       
+       if (loadHint) loadHint.style.display = "none";
+       if (!slots || !slots.length) {
+          timeSelect.innerHTML = `<option value="">-- No hay franjas libres ese día --</option>`;
+          return;
+       }
+
+       timeSelect.innerHTML = `<option value="">-- Elegí horario --</option>` +
+          slots.map(t => `<option value="${t}">${t}</option>`).join("");
+       timeSelect.disabled = false;
+     } catch(err) {
+       if (loadHint) loadHint.style.display = "none";
+       timeSelect.innerHTML = `<option value="">-- Error cargando horarios --</option>`;
+       console.error(err);
+     }
+  }
+});
 
 // ✅ Enganche pedido: un único addEventListener por ID
 (function bindQuickAddOnce() {
@@ -1516,54 +1595,82 @@ $("membersGrid")?.addEventListener("click", async (e) => {
     const m = (window._cachedMembers || []).find(x => String(x.id) === id);
     if (!m) return;
     
+    // Preparar estructura de franjas agrupadas por día
+    const currentSchedule = {};
+    WEEKDAYS.forEach(d => currentSchedule[d.i] = []);
+    m.workingHours.forEach(wh => {
+      if (!currentSchedule[wh.weekday]) currentSchedule[wh.weekday] = [];
+      currentSchedule[wh.weekday].push({ s: wh.startTime, e: wh.endTime });
+    });
+
+    // Renderizar HTML dinámico permitiendo múltiples franjas por día
     const daysHtml = WEEKDAYS.map(d => {
-      const hrs = m.workingHours.filter(wh => wh.weekday === d.i);
-      const hasHours = hrs.length > 0;
-      const startObj = hrs[0]?.startTime || "10:00";
-      const endObj = hrs[hrs.length - 1]?.endTime || "20:00";
+      let slots = currentSchedule[d.i];
+      if (slots.length === 0) slots = []; // Cerrado por defecto
       
+      const slotsHtml = slots.map((sl, idx) => `
+        <div class="franja-row" data-day="${d.i}" style="display:flex; gap:8px; align-items:center; margin-top:6px;">
+          <input type="time" class="input franja-start" value="${sl.s}" style="padding:4px 8px; font-size:13px;" required />
+          <span class="muted">a</span>
+          <input type="time" class="input franja-end" value="${sl.e}" style="padding:4px 8px; font-size:13px;" required />
+          <button class="icon-btn remove-franja" type="button" style="color:var(--danger);" title="Quitar franja">✕</button>
+        </div>
+      `).join("");
+
       return `
-        <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px; background:var(--surface); padding:10px; border-radius:8px; border:1px solid var(--border);">
-          <div style="width:100px; display:flex; align-items:center; gap:8px;">
-            <input type="checkbox" id="chk_${d.i}" class="day-check" data-day="${d.i}" ${hasHours ? "checked" : ""} />
-            <label style="font-weight:600; font-size:14px;" for="chk_${d.i}">${d.name}</label>
+        <div class="day-card" data-day="${d.i}" style="margin-bottom:12px; background:var(--surface); padding:10px; border-radius:8px; border:1px solid var(--border);">
+          <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-h); padding-bottom:8px; margin-bottom:8px;">
+            <div style="display:flex; align-items:center; gap:8px;">
+               <label style="font-weight:600; font-size:14px;">${d.name}</label>
+            </div>
+            <button class="btn btn-sm add-franja" data-add="${d.i}" type="button">+ Agregar franja</button>
           </div>
-          <div style="flex:1; display:flex; gap:10px; align-items:center;">
-            <input type="time" class="input day-start" id="start_${d.i}" value="${hasHours ? startObj : "10:00"}" ${hasHours ? "" : "disabled"} style="padding:4px 8px; font-size:13px;" />
-            <span class="muted">a</span>
-            <input type="time" class="input day-end" id="end_${d.i}" value="${hasHours ? endObj : "20:00"}" ${hasHours ? "" : "disabled"} style="padding:4px 8px; font-size:13px;" />
+          <div class="franjas-container" id="franjas_${d.i}">
+            ${slots.length > 0 ? slotsHtml : `<div class="muted empty-franja" style="font-size:13px; font-style:italic;">Día cerrado (Sin franjas)</div>`}
           </div>
         </div>
       `;
     }).join("");
     
+    // Template de nueva franja
+    const newFranjaTemplate = (day) => `
+      <div class="franja-row" data-day="${day}" style="display:flex; gap:8px; align-items:center; margin-top:6px;">
+        <input type="time" class="input franja-start" value="09:00" style="padding:4px 8px; font-size:13px;" required />
+        <span class="muted">a</span>
+        <input type="time" class="input franja-end" value="13:00" style="padding:4px 8px; font-size:13px;" required />
+        <button class="icon-btn remove-franja" type="button" style="color:var(--danger);" title="Quitar franja">✕</button>
+      </div>
+    `;
+
     const res = await openModal({
-      title: "Horarios",
+      title: "Horarios por Franja",
       subtitle: escapeHtml(m.name),
-      bodyHtml: `<div style="margin-bottom:16px;">${daysHtml}</div>`,
+      bodyHtml: `<div id="scheduleMatrix" style="max-height:60vh; overflow-y:auto; padding-right:8px; margin-bottom:16px;">${daysHtml}</div>`,
       okText: "Guardar Horarios"
     });
+
+    // Mapeo dinámico de botones + / x mientras el modal está abierto (Hack con delegación al document ya manejado o inyectado acá)
     
     if (!res?.ok) return;
     
     const schedule = [];
-    document.querySelectorAll(".day-check").forEach(chk => {
-      if (chk.checked) {
-        const d = chk.dataset.day;
-        const sTime = $("start_" + d)?.value;
-        const eTime = $("end_" + d)?.value;
-        if (sTime && eTime) schedule.push({ weekday: d, startTime: sTime, endTime: eTime });
-      }
+    document.querySelectorAll(".day-card").forEach(card => {
+       const day = card.dataset.day;
+       const franjas = card.querySelectorAll(".franja-row");
+       franjas.forEach(f => {
+         const s = f.querySelector(".franja-start").value;
+         const e = f.querySelector(".franja-end").value;
+         if (s && e) schedule.push({ weekday: Number(day), startTime: s, endTime: e });
+       });
     });
     
     try {
       await apiPut("/members/" + id + "/schedule", { schedule });
       await loadMembers();
-      alert("Horarios guardados ✅");
+      alert("Horarios multi-franja guardados ✅");
     } catch(err) { alert("Error guardando horario: " + err.message); }
   }
 });
-
 document.addEventListener("change", (e) => {
   if (e.target.classList.contains("day-check")) {
     const d = e.target.dataset.day;
@@ -1571,6 +1678,45 @@ document.addEventListener("change", (e) => {
     const endObj = $("end_" + d);
     if (startObj) startObj.disabled = !e.target.checked;
     if (endObj) endObj.disabled = !e.target.checked;
+  }
+});
+
+// Eventos multi-franja en modal de Barbero
+document.addEventListener("click", (e) => {
+  if (e.target.classList.contains("add-franja")) {
+    const day = e.target.dataset.add;
+    const container = document.getElementById("franjas_" + day);
+    if (!container) return;
+
+    // Remove empty state message if it exists
+    const emptyMsg = container.querySelector(".empty-franja");
+    if (emptyMsg) emptyMsg.remove();
+
+    const div = document.createElement("div");
+    div.className = "franja-row";
+    div.dataset.day = day;
+    div.style.cssText = "display:flex; gap:8px; align-items:center; margin-top:6px;";
+    div.innerHTML = `
+      <input type="time" class="input franja-start" value="09:00" style="padding:4px 8px; font-size:13px;" required />
+      <span class="muted">a</span>
+      <input type="time" class="input franja-end" value="13:00" style="padding:4px 8px; font-size:13px;" required />
+      <button class="icon-btn remove-franja" type="button" style="color:var(--danger);" title="Quitar franja">✕</button>
+    `;
+    container.appendChild(div);
+  }
+
+  if (e.target.classList.contains("remove-franja")) {
+    const row = e.target.closest(".franja-row");
+    if (!row) return;
+    
+    const container = row.parentElement;
+    const day = row.dataset.day;
+    row.remove();
+
+    // Re-insert empty message if no franjas are left
+    if (container && container.querySelectorAll(".franja-row").length === 0) {
+      container.innerHTML = `<div class="muted empty-franja" style="font-size:13px; font-style:italic;">Día cerrado (Sin franjas)</div>`;
+    }
   }
 });
 
