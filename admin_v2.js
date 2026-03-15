@@ -366,57 +366,93 @@ async function openAddTurnModal() {
 
     const todayStr = new Date().toISOString().split("T")[0];
 
+    // Store temporarily in window to avoid multiple complex fetches in handlers
+    window._addTurnData = { services, members: activeMembers, shop };
+
+    const srvOptions = services.map(s => `<option value="${s.id}">${escapeHtml(s.name)} ($${s.price})</option>`).join("");
+
     const result = await openModal({
-      title: "Nuevo turno",
-      subtitle: "Secuencia estricta de asignación",
+      title: "Nuevo turno manual",
+      subtitle: "Flujo estricto paso a paso",
       bodyHtml: `
-        <label class="label">1. Cliente</label>
-        <input class="input" id="apptName" placeholder="Nombre y apellido" />
+        <style>
+          .step-group { margin-bottom: 16px; }
+          .barber-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; margin-top: 6px; }
+          .barber-card {
+            border: 1px solid var(--border); border-radius: 8px; padding: 10px;
+            display: flex; align-items: center; gap: 10px; cursor: pointer;
+            transition: all 0.2s; background: var(--bg-card); user-select: none;
+          }
+          .barber-card:hover { border-color: var(--cyan); }
+          .barber-card.selected { border-color: var(--cyan); background: rgba(0, 255, 255, 0.1); }
+          .barber-avatar {
+            width: 42px; height: 42px; border-radius: 50%; object-fit: cover;
+            background: var(--bg); display: flex; align-items: center; justify-content: center;
+            font-weight: bold; overflow: hidden; flex-shrink: 0; color: var(--text);
+          }
+          .barber-avatar img { width: 100%; height: 100%; object-fit: cover; }
+          .barber-info { display: flex; flex-direction: column; overflow: hidden; }
+          .barber-name { font-weight: bold; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+          .barber-role { font-size: 12px; color: var(--text-muted); }
+        </style>
 
-        <label class="label">2. Fecha</label>
-        <input class="input" id="apptDate" type="date" value="${todayStr}" />
+        <div class="step-group" id="step1">
+          <label class="label">1. Cliente</label>
+          <input class="input" id="apptName" placeholder="Nombre y apellido" autocomplete="off" />
+        </div>
 
-        <label class="label">3. Servicio</label>
-        <select class="input" id="apptService">
-          <option value="">-- Elegí un servicio --</option>
-          ${services.map(s => `<option value="${s.id}">${escapeHtml(s.name)} ($${s.price})</option>`).join("")}
-        </select>
+        <div class="step-group" id="step2">
+          <label class="label">2. Servicio</label>
+          <select class="input" id="apptService">
+            <option value="">-- Elegí un servicio --</option>
+            ${srvOptions}
+          </select>
+        </div>
 
-        <label class="label">4. Barbero</label>
-        <select class="input" id="apptBarber" disabled>
-          <option value="">-- Primero elegí un servicio --</option>
-        </select>
+        <div class="step-group" id="step3" style="display:none;">
+          <label class="label">3. Barbero</label>
+          <div id="barberList" class="barber-grid"></div>
+          <input type="hidden" id="apptBarber" value="" />
+        </div>
 
-        <label class="label">5. Horario disponible</label>
-        <select class="input" id="apptTime" disabled>
-          <option value="">-- Primero completá los pasos anteriores --</option>
-        </select>
+        <div class="step-group" id="step4" style="display:none;">
+          <label class="label">4. Fecha</label>
+          <input class="input" id="apptDate" type="date" value="${todayStr}" min="${todayStr}" />
+        </div>
 
-        <label class="label">6. Teléfono (opcional)</label>
-        <input class="input" id="apptPhone" placeholder="Opcional..." />
-        
-        <div id="apptLoading" class="hint" style="display:none; color:var(--cyan); margin-top:8px;">Calculando horarios...</div>
+        <div class="step-group" id="step5" style="display:none;">
+          <label class="label">5. Horario disponible</label>
+          <select class="input" id="apptTime">
+            <option value="">-- Elegí horario --</option>
+          </select>
+          <div id="apptLoading" class="hint" style="display:none; color:var(--cyan); margin-top:5px;">Calculando horarios reales...</div>
+        </div>
+
+        <div class="step-group" id="step6" style="display:none;">
+          <label class="label">6. Teléfono (opcional)</label>
+          <input class="input" id="apptPhone" placeholder="Opcional..." autocomplete="off" />
+        </div>
       `,
       okText: "Crear turno",
     });
 
+    delete window._addTurnData;
+
     if (!result?.ok) return;
 
-    // Leer valores
     const customerName = String(safeVal("apptName")).trim();
-    const date = String(safeVal("apptDate")).trim();
     const serviceId = Number(safeVal("apptService"));
     const barberId = Number(safeVal("apptBarber"));
+    const date = String(safeVal("apptDate")).trim();
     const time = String(safeVal("apptTime")).trim();
     const customerPhone = String(safeVal("apptPhone")).trim();
 
     if (!customerName) return alert("Completá el nombre del cliente.");
-    if (!date) return alert("Seleccioná la fecha.");
     if (!serviceId) return alert("Seleccioná el servicio.");
     if (!barberId) return alert("Seleccioná el barbero.");
-    if (!time) return alert("Seleccioná el horario asignado.");
+    if (!date) return alert("Seleccioná la fecha.");
+    if (!time) return alert("Seleccioná el horario disponible válido.");
 
-    // POST /appointments/owner
     await apiPost("/appointments/owner", {
       serviceId,
       barberId,
@@ -434,78 +470,116 @@ async function openAddTurnModal() {
   }
 }
 
-// Reactividad del Modal de Creación
-document.addEventListener("change", async (e) => {
-  if (e.target.id === "apptService" || e.target.id === "apptDate") {
-     const srvSelect = document.getElementById("apptService");
-     const barberSelect = document.getElementById("apptBarber");
-     const timeSelect = document.getElementById("apptTime");
-     if (!srvSelect || !barberSelect || !timeSelect) return;
+async function loadAvailableTimes() {
+  const srvId = Number($("apptService")?.value);
+  const brbId = Number($("apptBarber")?.value);
+  const dateVal = $("apptDate")?.value;
+  const timeSelect = $("apptTime");
+  const loadHint = $("apptLoading");
 
-     const srvId = Number(srvSelect.value);
-     const dateVal = document.getElementById("apptDate").value;
+  if (!srvId || !brbId || !dateVal || !timeSelect) return;
 
-     timeSelect.innerHTML = `<option value="">-- Seleccioná barbero --</option>`;
-     timeSelect.disabled = true;
+  $("step5").style.display = "block";
+  timeSelect.disabled = true;
+  timeSelect.innerHTML = `<option value="">Cargando horarios...</option>`;
+  if (loadHint) loadHint.style.display = "block";
+  $("step6").style.display = "none";
 
-     if (!srvId || !dateVal) {
-        barberSelect.innerHTML = `<option value="">-- Faltan datos --</option>`;
-        barberSelect.disabled = true;
-        return;
-     }
+  try {
+    const shop = window._addTurnData.shop;
+    const { slots } = await apiGet(`/public/${shop.slug}/availability?barberId=${brbId}&serviceId=${srvId}&date=${dateVal}`);
+    
+    if (loadHint) loadHint.style.display = "none";
+    if (!slots || !slots.length) {
+       timeSelect.innerHTML = `<option value="">Sin horarios disponibles</option>`;
+       return;
+    }
 
-     try {
-       const { members } = await apiGet("/members");
-       // Filtrar barberos activos que brinden este servicio
-       const validBarbers = (members || []).filter(m => 
-          m.isActive && m.services.find(s => s.id === srvId)
-       );
-       
-       if (!validBarbers.length) {
-          barberSelect.innerHTML = `<option value="">-- Ningún barbero hace ese servicio --</option>`;
-          barberSelect.disabled = true;
-          return;
-       }
-       
-       barberSelect.innerHTML = `<option value="">-- Elegí un barbero --</option>` +
-          validBarbers.map(b => `<option value="${b.id}">${escapeHtml(b.name)}</option>`).join("");
-       barberSelect.disabled = false;
-     } catch(err) {
-       console.error("Error filtrando barberos", err);
-     }
+    timeSelect.innerHTML = `<option value="">-- Elegí horario --</option>` +
+       slots.map(t => `<option value="${t}">${t}</option>`).join("");
+    timeSelect.disabled = false;
+  } catch(err) {
+    if (loadHint) loadHint.style.display = "none";
+    timeSelect.innerHTML = `<option value="">Sin horarios disponibles</option>`;
+    console.error("Error cargando horarios:", err);
+  }
+}
+
+// Reactividad global del modal
+document.addEventListener("change", (e) => {
+  if (e.target.id === "apptService") {
+    const srvId = Number(e.target.value);
+    const step3 = $("step3");
+    const barberList = $("barberList");
+    const apptBarber = $("apptBarber");
+    
+    // Resetear pasos siguientes
+    apptBarber.value = "";
+    $("step4").style.display = "none";
+    $("step5").style.display = "none";
+    $("step6").style.display = "none";
+
+    if (!srvId) {
+      step3.style.display = "none";
+      return;
+    }
+
+    // Filtrar barberos que hacen este servicio
+    const members = window._addTurnData?.members || [];
+    const validBarbers = members.filter(m => m.services && m.services.some(s => s.id === srvId));
+
+    if (!validBarbers.length) {
+      step3.style.display = "block";
+      barberList.innerHTML = `<div class="hint">Ningún barbero realiza este servicio.</div>`;
+      return;
+    }
+
+    // Renderizar tarjetas de barberos validos
+    barberList.innerHTML = validBarbers.map(b => {
+      const initial = escapeHtml(b.name.charAt(0).toUpperCase());
+      const avatarHtml = (b.avatarBase64 && b.avatarBase64.length > 50)
+        ? `<img src="${escapeAttr(b.avatarBase64)}" alt="Avatar"/>`
+        : `<span>${initial}</span>`;
+
+      return `
+        <div class="barber-card" data-id="${b.id}">
+          <div class="barber-avatar">${avatarHtml}</div>
+          <div class="barber-info">
+            <span class="barber-name">${escapeHtml(b.name)}</span>
+            <span class="barber-role">${escapeHtml(b.role || "Barbero")}</span>
+          </div>
+        </div>
+      `;
+    }).join("");
+
+    step3.style.display = "block";
   }
 
-  if (e.target.id === "apptBarber" || (e.target.id === "apptDate" && document.getElementById("apptBarber")?.value)) {
-     const srvId = Number(document.getElementById("apptService").value);
-     const brbId = Number(document.getElementById("apptBarber").value);
-     const dateVal = document.getElementById("apptDate").value;
-     const timeSelect = document.getElementById("apptTime");
-     const loadHint = document.getElementById("apptLoading");
-     
-     if (!srvId || !brbId || !dateVal || !timeSelect) return;
-     
-     timeSelect.disabled = true;
-     timeSelect.innerHTML = `<option value="">Cargando...</option>`;
-     if (loadHint) loadHint.style.display = "block";
+  if (e.target.id === "apptDate") {
+    if ($("apptBarber")?.value) {
+      loadAvailableTimes();
+    }
+  }
 
-     try {
-       const shop = await apiGet("/barbershops/mine");
-       const { slots } = await apiGet(`/public/${shop.slug}/availability?barberId=${brbId}&serviceId=${srvId}&date=${dateVal}`);
-       
-       if (loadHint) loadHint.style.display = "none";
-       if (!slots || !slots.length) {
-          timeSelect.innerHTML = `<option value="">-- No hay franjas libres ese día --</option>`;
-          return;
-       }
+  if (e.target.id === "apptTime") {
+    if (e.target.value) {
+      $("step6").style.display = "block";
+    } else {
+      $("step6").style.display = "none";
+    }
+  }
+});
 
-       timeSelect.innerHTML = `<option value="">-- Elegí horario --</option>` +
-          slots.map(t => `<option value="${t}">${t}</option>`).join("");
-       timeSelect.disabled = false;
-     } catch(err) {
-       if (loadHint) loadHint.style.display = "none";
-       timeSelect.innerHTML = `<option value="">-- Error cargando horarios --</option>`;
-       console.error(err);
-     }
+document.addEventListener("click", (e) => {
+  const card = e.target.closest(".barber-card");
+  if (card && $("apptBarber")) {
+    document.querySelectorAll(".barber-card").forEach(c => c.classList.remove("selected"));
+    card.classList.add("selected");
+    $("apptBarber").value = card.dataset.id;
+    
+    // Al seleccionar barbero, mostrar y recargar horarios para la fecha actual
+    $("step4").style.display = "block";
+    loadAvailableTimes();
   }
 });
 
