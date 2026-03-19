@@ -180,6 +180,39 @@
 
         <!-- CONFIG -->
         <div class="view" id="view-config" style="display:none;">
+
+          <!-- WIDGET CANAL DE RESERVAS -->
+          <div class="card" style="margin-bottom: 24px; border-color: var(--primary); background: linear-gradient(135deg, var(--bg-card), rgba(59, 130, 246, 0.05));">
+            <div class="card-head">
+              <div>
+                <h2>Canal Público de Reservas</h2>
+                <p class="muted">Compartí este link con tus clientes para que agenden solos.</p>
+              </div>
+            </div>
+            <div class="card-body" style="display: flex; flex-direction: column; gap: 16px;">
+              <div style="background: rgba(0,0,0,0.3); padding: 16px; border-radius: 8px; border: 1px dashed var(--border);">
+                <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 4px;">Link exacto para copiar:</div>
+                <div id="cfgPublicLinkDisplay" style="font-weight: 600; font-size: 15px; color: var(--primary); word-break: break-all;">Cargando link...</div>
+              </div>
+              
+              <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                <button class="btn" id="btnCopyPublicLink" style="flex: 1; padding: 10px;">📋 Copiar Link</button>
+                <button class="btn primary" id="btnOpenPublicLink" style="flex: 1; padding: 10px;" onclick="window.open($('cfgPublicLinkDisplay').textContent, '_blank')">🌐 Abrir Página</button>
+              </div>
+
+              <div style="display: flex; gap: 16px; align-items: center; margin-top: 12px; padding-top: 16px; border-top: 1px solid var(--border);">
+                <div id="cfgQrContainer" style="background: #fff; padding: 12px; border-radius: 8px; display: inline-block;">
+                  <!-- QR se dibuja acá -->
+                </div>
+                <div>
+                  <div style="font-weight: 600; margin-bottom: 6px;">Código QR de la Barbería</div>
+                  <div class="muted" style="margin-bottom: 12px; font-size: 13px;">Imprimilo o subilo a tus redes para que los clientes lo escaneen.</div>
+                  <button class="ghost-btn" id="btnDownloadQr" style="padding: 8px 16px;">⬇️ Descargar PNG</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div class="card">
             <div class="card-head">
               <div>
@@ -283,6 +316,8 @@
     </main>
   </div>
 
+  <!-- Libreria QRCode.js CDN (muy ligera, sin dependencias) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script src="./config.js"></script>
   <script src="./admin_v2.js"></script>
 </body>

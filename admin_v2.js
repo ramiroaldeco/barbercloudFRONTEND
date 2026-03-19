@@ -800,10 +800,95 @@ async function loadConfig() {
     window.pendingLogoRemoved = false;
     const fileInp = $("cfgLogoFile");
     if (fileInp) fileInp.value = "";
+
+    // ✅ Renderizar widget público
+    renderPublicChannel(shop.slug);
+
   } catch (e) {
     console.warn(e.message);
   }
 }
+
+// ---- Widget Público Reservas ----
+let qrCodeInstance = null;
+
+function renderPublicChannel(slug) {
+  const linkDisplay = $("cfgPublicLinkDisplay");
+  const btnCopy = $("btnCopyPublicLink");
+  const btnOpen = $("btnOpenPublicLink");
+  const btnDown = $("btnDownloadQr");
+  const qrBox = $("cfgQrContainer");
+
+  if (!linkDisplay || !qrBox) return;
+
+  if (!slug) {
+    linkDisplay.innerHTML = `<span style="color: var(--danger);">⚠ Primero configurá tu slug debajo y guardá.</span>`;
+    linkDisplay.dataset.url = "";
+    btnCopy.disabled = true;
+    btnOpen.disabled = true;
+    btnDown.disabled = true;
+    qrBox.innerHTML = '<div style="color:var(--text-muted); font-size:12px; padding:20px;">Sin QR</div>';
+    if (qrCodeInstance) { qrCodeInstance.clear(); qrCodeInstance = null; }
+    return;
+  }
+
+  // Armamos URL absoluta
+  const baseUrl = window.location.origin + window.location.pathname.replace("admin_v2.html", "");
+  const publicUrl = baseUrl + "book.html?slug=" + slug;
+  
+  linkDisplay.textContent = publicUrl;
+  linkDisplay.dataset.url = publicUrl;
+  
+  btnCopy.disabled = false;
+  btnOpen.disabled = false;
+  btnDown.disabled = false;
+
+  // Dibujar QR
+  qrBox.innerHTML = "";
+  qrCodeInstance = new QRCode(qrBox, {
+    text: publicUrl,
+    width: 128,
+    height: 128,
+    colorDark: "#000000",
+    colorLight: "#ffffff",
+    correctLevel: QRCode.CorrectLevel.M
+  });
+}
+
+$("btnCopyPublicLink")?.addEventListener("click", () => {
+  const link = $("cfgPublicLinkDisplay")?.dataset.url;
+  if (!link) return;
+  navigator.clipboard.writeText(link).then(() => {
+    alert("✅ Link copiado al portapapeles");
+  }).catch(err => {
+    console.error("No se pudo copiar", err);
+  });
+});
+
+$("btnDownloadQr")?.addEventListener("click", () => {
+  const qrBox = $("cfgQrContainer");
+  const img = qrBox.querySelector("img");
+  const canvas = qrBox.querySelector("canvas");
+
+  let urlToDescargar = "";
+  if (img && img.src && img.src.length > 100) { // SVG/PNG mode in some mobiles
+    urlToDescargar = img.src;
+  } else if (canvas) {
+    urlToDescargar = canvas.toDataURL("image/png");
+  }
+
+  if (!urlToDescargar) {
+    alert("El QR aún no se generó o hubo un error.");
+    return;
+  }
+
+  const a = document.createElement("a");
+  a.href = urlToDescargar;
+  a.download = "QR_Reservas_BarberCloud.png";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+});
 
 
 window.pendingLogoRemoved = false;
