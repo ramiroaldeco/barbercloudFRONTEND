@@ -188,6 +188,16 @@
             </div>
 
             <div class="card-body">
+              <label class="label">Logo de la barbería</label>
+              <div style="display:flex; align-items:center; gap:12px; margin-bottom: 16px;">
+                <img id="cfgLogoPreview" src="" alt="logo" style="width: 64px; height: 64px; border-radius: 8px; object-fit: cover; display: none; background: #222;" />
+                <div id="cfgLogoFallback" style="width: 64px; height: 64px; border-radius: 8px; background: #222; display: flex; align-items: center; justify-content: center; font-size: 24px; color: #fff;">B</div>
+                <div style="display:flex; flex-direction:column; gap:6px;">
+                  <input type="file" id="cfgLogoFile" accept="image/png, image/jpeg, image/webp" style="font-size: 14px;" />
+                  <button class="btn" id="btnRemoveLogo" style="width: fit-content; padding: 4px 8px; font-size:12px; border-color: #555;">Quitar logo</button>
+                </div>
+              </div>
+
               <label class="label">Nombre</label>
               <input class="input" id="cfgName" />
 

@@ -242,8 +242,18 @@ async function loadShopHeader() {
 
     safeText("shopName", data.name || "BarberCloud");
     safeText("shopCity", data.city || "Admin");
-    const avatar = (data.name || "B").trim().charAt(0).toUpperCase();
-    safeText("shopAvatar", avatar);
+    // Identidad (Logo)
+    const avatarEl = $("shopAvatar");
+    if (avatarEl) {
+      if (data.logoBase64) {
+        avatarEl.style.padding = "0";
+        avatarEl.innerHTML = `<img src="${data.logoBase64}" alt="Logo" style="width:100%; height:100%; object-fit:cover; border-radius:inherit;" />`;
+      } else {
+        avatarEl.style.padding = "";
+        const initial = (data.name || "B").trim().charAt(0).toUpperCase();
+        avatarEl.innerHTML = initial;
+      }
+    }
 
     const filled = ["name", "city", "address", "phone", "slug"].filter((k) => data[k]).length;
     const pct = Math.round((filled / 5) * 100);
@@ -771,10 +781,62 @@ async function loadConfig() {
     if ($("cfgDepositPct"))
       $("cfgDepositPct").value =
         shop.defaultDepositPercentage != null ? String(shop.defaultDepositPercentage) : "";
+        
+    const p = $("cfgLogoPreview");
+    const f = $("cfgLogoFallback");
+    if (shop.logoBase64) {
+        if (p) { p.src = shop.logoBase64; p.style.display = "block"; }
+        if (f) { f.style.display = "none"; }
+    } else {
+        if (p) { p.src = ""; p.style.display = "none"; }
+        if (f) { f.style.display = "flex"; }
+    }
+    window.pendingLogoRemoved = false;
+    const fileInp = $("cfgLogoFile");
+    if (fileInp) fileInp.value = "";
   } catch (e) {
     console.warn(e.message);
   }
 }
+
+
+window.pendingLogoRemoved = false;
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+$("btnRemoveLogo")?.addEventListener("click", () => {
+    const p = $("cfgLogoPreview");
+    const f = $("cfgLogoFallback");
+    if (p) { p.src = ""; p.style.display = "none"; }
+    if (f) { f.style.display = "flex"; }
+    const fileInp = $("cfgLogoFile");
+    if (fileInp) fileInp.value = "";
+    window.pendingLogoRemoved = true;
+});
+
+$("cfgLogoFile")?.addEventListener("change", async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+        alert("El logo es muy pesado. Máximo 2MB.");
+        e.target.value = "";
+        return;
+    }
+    try {
+        const b64 = await fileToBase64(file);
+        const p = $("cfgLogoPreview");
+        const f = $("cfgLogoFallback");
+        if (p) { p.src = b64; p.style.display = "block"; }
+        if (f) { f.style.display = "none"; }
+        window.pendingLogoRemoved = false;
+    } catch(err) { console.error(err); }
+});
 
 $("btnSaveConfig")?.addEventListener("click", async () => {
   try {
@@ -786,13 +848,25 @@ $("btnSaveConfig")?.addEventListener("click", async () => {
     const pctRaw = safeVal("cfgDepositPct", "").trim();
     const pct = pctRaw === "" ? NaN : Number(pctRaw);
 
+    
+    const fileInp = $("cfgLogoFile");
+    let logoPayload = undefined;
+    if (window.pendingLogoRemoved) {
+      logoPayload = null;
+    } else if (fileInp && fileInp.files && fileInp.files[0]) {
+      logoPayload = await fileToBase64(fileInp.files[0]);
+    }
+
     await apiPut("/barbershops/mine", {
       name,
       city: city || null,
       address: address || null,
       phone: phone || null,
       slug: slug || null,
+      ...(logoPayload !== undefined ? { logoBase64: logoPayload } : {})
     });
+    window.pendingLogoRemoved = false;
+    if (fileInp) fileInp.value = "";
 
     if (!Number.isNaN(pct)) {
       await apiPut("/barbershops/mine/settings", { defaultDepositPercentage: pct });
