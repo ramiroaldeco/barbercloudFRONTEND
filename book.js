@@ -127,10 +127,7 @@ async function apiPost(path, body) {
 }
 
 function todayISO() {
-  const d = new Date();
-  const utc = d.getTime() + d.getTimezoneOffset() * 60000;
-  const arg = new Date(utc - 3 * 3600000);
-  return arg.toISOString().split("T")[0];
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Argentina/Buenos_Aires", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
 }
 
 function renderServiceSummary() {
