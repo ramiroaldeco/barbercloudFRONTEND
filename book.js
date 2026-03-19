@@ -1,120 +1,39 @@
 const API = window.API_BASE || "https://barbercloud.onrender.com/api";
 
-// slug por ?slug=... o por path /barberrami
+// Utils
+const $ = (id) => document.getElementById(id);
+const safeText = (id, txt) => { if ($(id)) $(id).textContent = txt ?? ""; };
+
+let state = { barbershop: null, services: [], members: [], selectedTime: null };
+let currentStep = 1;
+
+// =====================
+// INIT & DATA FETCH
+// =====================
 function getSlug() {
   const qs = new URLSearchParams(location.search);
   const q = qs.get("slug");
   if (q) return q;
 
-  // ejemplo: /barberrami  o /book.html/barberrami (según hosting)
   const parts = location.pathname.split("/").filter(Boolean);
-  // si estás en /book.html, el slug no está. si estás en /barberrami, sí.
   const last = parts[parts.length - 1];
   if (last && !last.endsWith(".html")) return last;
-
   return "";
 }
+
 const slug = getSlug();
 
-const $ = (id) => document.getElementById(id);
-
-let state = { barbershop: null, services: [], members: [], selectedTime: null };
-
-// =====================
-// WIZARD UI (NUEVO)
-// =====================
-let currentStep = 1;
-
-function showStep(n) {
-  currentStep = n;
-
-  ["step1", "step2", "step3", "step4"].forEach((id, idx) => {
-    const el = $(id);
-    if (!el) return;
-    el.classList.toggle("is-visible", idx + 1 === n);
-  });
-
-  const steps = document.querySelectorAll("#stepper .step");
-  steps.forEach((x) => {
-    const s = Number(x.dataset.step);
-    x.classList.toggle("is-active", s === n);
-    x.classList.toggle("is-done", s < n);
-  });
-
-  window.scrollTo({ top: 0, behavior: "smooth" });
-}
-
-function safeText(el, txt) {
-  if (!el) return;
-  el.textContent = txt ?? "";
-}
-
-function updateSideSummary() {
-  const s = state.services.find(x => x.id === Number($("serviceSelect")?.value));
-  const b = state.members.find(x => x.id === Number($("barberSelect")?.value));
-  const date = $("dateInput")?.value || "";
-  const time = state.selectedTime || "";
-
-  const pct = s?.depositPercentage ?? state.barbershop?.defaultDepositPercentage ?? 15;
-  const price = s?.price ?? 0;
-  const deposit = Math.round((price * pct) / 100);
-  const fee = state.barbershop?.platformFee ?? 0;
-  const total = deposit + fee;
-
-  safeText($("sideService"), s ? `${s.name} ($${s.price})` : "—");
-  safeText($("sideDate"), date || "—");
-  safeText($("sideTime"), time && b ? `${time} con ${b.name}` : "—");
-  safeText($("sideDeposit"), s ? `$${total} (seña $${deposit} + fee $${fee})` : "—");
-}
-
-function renderFinalSummary() {
-  const s = state.services.find(x => x.id === Number($("serviceSelect")?.value));
-  const b = state.members.find(x => x.id === Number($("barberSelect")?.value));
-  const date = $("dateInput")?.value || "";
-  const time = state.selectedTime || "";
-
-  const pct = s?.depositPercentage ?? state.barbershop?.defaultDepositPercentage ?? 15;
-  const price = s?.price ?? 0;
-  const deposit = Math.round((price * pct) / 100);
-  const fee = state.barbershop?.platformFee ?? 0;
-  const total = deposit + fee;
-
-  const box = $("finalSummary");
-  if (box) {
-    box.innerHTML = `
-      <div><b>Servicio:</b> ${s?.name ?? "—"} (${s?.durationMinutes ?? "—"} min)</div>
-      <div><b>Barbero:</b> ${b?.name ?? "—"}</div>
-      <div><b>Fecha:</b> ${date || "—"} • <b>Hora:</b> ${time || "—"}</div>
-      <div style="margin-top:8px"><b>Precio:</b> $${price}</div>
-      <div><b>Seña:</b> $${deposit} (${pct}%)</div>
-      <div><b>Fee plataforma:</b> $${fee}</div>
-      <div style="margin-top:4px"><b>Total a pagar ahora:</b> $${total}</div>
-    `;
-  }
-
-  updateSideSummary();
-}
-
-// ✅ A) NUEVO: habilitar/deshabilitar botón reservar según slot + nombre + teléfono
-function refreshBookButton() {
-  const name = $("nameInput")?.value.trim() || "";
-  const phone = $("phoneInput")?.value.trim() || "";
-  const btn = $("btnBook");
-  if (btn) btn.disabled = !(state.selectedTime && name && phone);
-}
-
-function apiUrl(path) { return API + path; }
-
 async function apiGet(path) {
-  const r = await fetch(apiUrl(path));
+  const r = await fetch(API + path);
   const t = await r.text();
   let data;
   try { data = JSON.parse(t); } catch { data = { raw: t }; }
   if (!r.ok) throw new Error(data.error || "Error");
   return data;
 }
+
 async function apiPost(path, body) {
-  const r = await fetch(apiUrl(path), {
+  const r = await fetch(API + path, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
@@ -130,279 +49,323 @@ function todayISO() {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Argentina/Buenos_Aires", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
 }
 
-function renderServiceSummary() {
-  const id = Number($("serviceSelect")?.value);
-  const s = state.services.find(x => x.id === id);
-  if (!s) return;
+async function fetchInitialData() {
+  showLoader("Cargando información...");
+  try {
+    const shopRes = await apiGet(`/public/${slug}/barbershop`);
+    state.barbershop = shopRes.item;
 
-  const pct = s.depositPercentage ?? state.barbershop?.defaultDepositPercentage ?? 15;
-  const deposit = Math.round((s.price * pct) / 100);
-  const fee = state.barbershop?.platformFee ?? 0;
-  const total = deposit + fee;
+    const srvRes = await apiGet(`/public/${slug}/services`);
+    state.services = srvRes.items || [];
 
-  const el = $("serviceSummary");
-  if (el) {
-    el.innerHTML =
-      `Duración: <b>${s.durationMinutes} min</b> • Precio: <b>$${s.price}</b> • Seña: <b>$${deposit}</b> (${pct}%) + fee $${fee} = <b>$${total}</b>`;
+    const memRes = await apiGet(`/public/${slug}/members`);
+    state.members = memRes.members || [];
+
+    renderHeader();
+    renderServices();
+    
+    // Set min date
+    const dateInput = $("dateInput");
+    if (dateInput) {
+      dateInput.min = todayISO();
+      dateInput.value = todayISO();
+    }
+  } catch (err) {
+    safeText("shopTitle", "Error de carga");
+    safeText("shopMeta", "No pudimos encontrar esta barbería: " + err.message);
+  } finally {
+    hideLoader();
   }
+}
 
-  updateSideSummary();
+// =====================
+// RENDERERS
+// =====================
+function renderHeader() {
+  const { name, city, address, logoBase64 } = state.barbershop;
+  safeText("shopTitle", name);
+  safeText("shopMeta", `${city || ""} ${address ? "• " + address : ""}`.trim());
+  
+  const logo = $("shopLogo");
+  const fallback = $("shopLogoFallback");
+  
+  if (logoBase64) {
+    logo.src = logoBase64;
+    logo.style.display = "block";
+    fallback.style.display = "none";
+  } else {
+    fallback.textContent = (name || "B").charAt(0).toUpperCase();
+    logo.style.display = "none";
+    fallback.style.display = "flex";
+  }
 }
 
 function renderServices() {
-  const sel = $("serviceSelect");
-  if (!sel) return;
+  const list = $("servicesList");
+  if (!list) return;
 
-  sel.innerHTML = `<option value="">-- Elegí un servicio --</option>` + state.services.map(s =>
-    `<option value="${s.id}">${s.name} ($${s.price})</option>`
-  ).join("");
+  if (!state.services.length) {
+    list.innerHTML = `<div class="hint">No hay servicios configurados.</div>`;
+    return;
+  }
 
-  renderServiceSummary();
+  list.innerHTML = state.services.map(s => {
+    return `
+      <div class="select-card" data-service-id="${s.id}">
+        <div class="card-main">
+          <div class="card-info">
+            <span class="card-title">${escapeHtml(s.name)}</span>
+            <span class="card-sub">${s.durationMinutes} min</span>
+          </div>
+        </div>
+        <div class="card-price">$${s.price}</div>
+      </div>
+    `;
+  }).join("");
+
+  // Añadir eventos click a las tarjetas
+  list.querySelectorAll(".select-card").forEach(card => {
+    card.addEventListener("click", () => {
+      list.querySelectorAll(".select-card").forEach(c => c.classList.remove("is-selected"));
+      card.classList.add("is-selected");
+      $("serviceSelect").value = card.dataset.serviceId;
+      $("btnGoTo2").disabled = false;
+      renderBarbers(); // Actualiza barberos según el servicio elegido
+    });
+  });
 }
 
 function renderBarbers() {
-  const selService = Number($("serviceSelect")?.value);
-  const selBarber = $("barberSelect");
-  if (!selBarber) return;
+  const list = $("barbersList");
+  if (!list) return;
   
-  selBarber.innerHTML = `<option value="">-- Elegí un barbero --</option>`;
-  selBarber.disabled = true;
-  
+  const selService = Number($("serviceSelect").value);
   if (!selService) return;
 
-  const validMembers = state.members.filter(m => m.services.find(s => s.id === selService));
-  
+  const validMembers = state.members.filter(m => m.services && m.services.some(s => s.id === selService));
+
+  $("barberSelect").value = "";
+  $("btnGoTo3").disabled = true;
+
   if (!validMembers.length) {
-    selBarber.innerHTML = `<option value="">-- Ningún barbero hace este servicio --</option>`;
+    list.innerHTML = `<div class="hint">Ningún barbero realiza este servicio.</div>`;
     return;
   }
-  
-  selBarber.innerHTML = `<option value="">-- Elegí un barbero --</option>` + validMembers.map(m =>
-    `<option value="${m.id}">${m.name}</option>`
-  ).join("");
-  selBarber.disabled = false;
+
+  list.innerHTML = validMembers.map(m => {
+    const avatar = m.avatarBase64 && m.avatarBase64.length > 50 
+        ? `<img src="${m.avatarBase64}" style="width:100%; height:100%; object-fit:cover; border-radius:inherit;" />`
+        : `<span>${escapeHtml(m.name.charAt(0).toUpperCase())}</span>`;
+        
+    return `
+      <div class="select-card" data-barber-id="${m.id}">
+        <div class="card-main">
+          <div class="card-avatar" style="display:flex; align-items:center; justify-content:center; color:#fff; font-weight:bold;">${avatar}</div>
+          <div class="card-info">
+            <span class="card-title">${escapeHtml(m.name)}</span>
+            <span class="card-sub">${escapeHtml(m.role || "Barbero")}</span>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  list.querySelectorAll(".select-card").forEach(card => {
+    card.addEventListener("click", () => {
+      list.querySelectorAll(".select-card").forEach(c => c.classList.remove("is-selected"));
+      card.classList.add("is-selected");
+      $("barberSelect").value = card.dataset.barberId;
+      $("btnGoTo3").disabled = false;
+    });
+  });
 }
 
-function renderSlots(slots) {
+async function renderSlotsAvailable() {
+  const serviceId = $("serviceSelect").value;
+  const barberId = $("barberSelect").value;
+  const date = $("dateInput").value;
   const box = $("slots");
+  const hint = $("slotHint");
+
+  $("btnGoTo4").disabled = true;
   state.selectedTime = null;
-  refreshBookButton();
-  updateSideSummary();
 
-  const btnGoTo3 = $("btnGoTo3");
-  if (btnGoTo3) btnGoTo3.disabled = true;
+  if (!serviceId || !barberId || !date) return;
 
-  if (!box) return;
+  hint.textContent = "Buscando horarios...";
+  box.innerHTML = `
+    <div class="skeleton sk-text"></div>
+    <div class="skeleton sk-text"></div>
+  `;
 
-  if (!slots.length) {
-    box.innerHTML = "";
-    if ($("slotHint")) $("slotHint").textContent = "No hay horarios disponibles para ese día.";
-    return;
-  }
+  try {
+    const data = await apiGet(`/public/${slug}/availability?barberId=${barberId}&serviceId=${serviceId}&date=${date}`);
+    const slots = data.slots || [];
 
-  if ($("slotHint")) $("slotHint").textContent = "Elegí un horario:";
-  box.innerHTML = slots.map(t => `
-    <button class="btn" data-slot="${t}" aria-pressed="false">${t}</button>
-  `).join("");
-
-  // ✅ B) handler: deja el slot “fijo” visualmente + refresca botón + habilita continuar
-  box.onclick = (e) => {
-    const b = e.target.closest("[data-slot]");
-    if (!b) return;
-
-    const t = b.dataset.slot;
-    state.selectedTime = t;
-
-    // marcar seleccionado (visual)
-    box.querySelectorAll("[data-slot]").forEach(x => {
-      x.classList.remove("primary", "is-selected");
-      x.setAttribute("aria-pressed", "false");
-    });
-
-    b.classList.add("primary", "is-selected");
-    b.setAttribute("aria-pressed", "true");
-
-    refreshBookButton();
-    updateSideSummary();
-
-    if (btnGoTo3) btnGoTo3.disabled = false;
-  };
-}
-
-async function init() {
-  // ✅ Bloquear fechas pasadas + default hoy
-  const dateInput = $("dateInput");
-  if (dateInput) dateInput.min = todayISO();
-
-  if (!slug) {
-    safeText($("shopTitle"), "Falta slug");
-    safeText($("shopMeta"), "Usá: book.html?slug=barberrami o entrá a /barberrami (con rewrites)");
-    const btnLoad = $("btnLoad") || $("btnFetchSlots");
-    if (btnLoad) btnLoad.disabled = true;
-    return;
-  }
-
-  // info barbería + servicios
-  const shop = await apiGet(`/public/${slug}/barbershop`);
-  state.barbershop = shop.item;
-
-  safeText($("shopTitle"), state.barbershop.name);
-  safeText($("shopMeta"),
-    `${state.barbershop.city || ""} ${state.barbershop.address ? "• " + state.barbershop.address : ""}`.trim()
-  );
-
-  const services = await apiGet(`/public/${slug}/services`);
-  state.services = services.items || [];
-  const members = await apiGet(`/public/${slug}/members`);
-  state.members = members.members || [];
-  
-  renderServices();
-  renderBarbers();
-
-  // ✅ init: resumen + hint pro
-  renderServiceSummary();
-  if ($("slotHint")) $("slotHint").textContent = "Elegí fecha y tocá “Ver horarios”.";
-
-  // ✅ cada vez que cambie el servicio: refresca resumen, barberos y resetea slots
-  const sel = $("serviceSelect");
-  if (sel) {
-    sel.addEventListener("change", () => {
-      renderServiceSummary();
-      renderBarbers();
-      renderSlots([]);
-      if ($("slotHint")) $("slotHint").textContent = "Elegí fecha y tocá “Ver horarios”.";
-    });
-  }
-
-  // Si cambia el barbero, reseteamos slots
-  const sel2 = $("barberSelect");
-  if (sel2) {
-    sel2.addEventListener("change", () => {
-      renderSlots([]);
-    });
-  }
-
-  // ✅ habilitar “Reservar” cuando corresponda
-  ["nameInput", "phoneInput"].forEach(id => {
-    const el = $(id);
-    if (el) el.addEventListener("input", refreshBookButton);
-  });
-
-  // fecha default
-  if (dateInput) dateInput.value = todayISO();
-
-  // =====================
-  // Wiring Wizard Buttons
-  // =====================
-  // Si tenés IDs viejos, soportamos ambos:
-  const btnFetch = $("btnFetchSlots") || $("btnLoad");
-  if (btnFetch) btnFetch.addEventListener("click", async () => {
-    const sId = $("serviceSelect")?.value;
-    const bId = $("barberSelect")?.value;
-    if (!sId || !bId) return alert("Por favor, elegí un Servicio y un Barbero válido.");
-    
-    await loadSlots();
-    showStep(2);
-  });
-
-  const b1 = $("btnBackTo1");
-  if (b1) b1.addEventListener("click", () => showStep(1));
-
-  const b2 = $("btnBackTo2");
-  if (b2) b2.addEventListener("click", () => showStep(2));
-
-  const b3 = $("btnBackTo3");
-  if (b3) b3.addEventListener("click", () => showStep(3));
-
-  const go3 = $("btnGoTo3");
-  if (go3) go3.addEventListener("click", () => showStep(3));
-
-  const go4 = $("btnGoTo4");
-  if (go4) go4.addEventListener("click", () => {
-    const name = $("nameInput")?.value.trim() || "";
-    const phone = $("phoneInput")?.value.trim() || "";
-    if (!name || !phone) {
-      safeText($("bookMsg"), "Completá nombre y teléfono.");
-      refreshBookButton();
+    if (!slots.length) {
+      hint.textContent = "No hay huecos disponibles para esta fecha.";
+      box.innerHTML = "";
       return;
     }
-    renderFinalSummary();
-    showStep(4);
+
+    hint.textContent = "Elegí el horario que más te convenga:";
+    box.innerHTML = slots.map(t => `<button class="slot-btn" data-slot="${t}">${t}</button>`).join("");
+
+    box.querySelectorAll(".slot-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        box.querySelectorAll(".slot-btn").forEach(b => b.classList.remove("is-selected"));
+        btn.classList.add("is-selected");
+        state.selectedTime = btn.dataset.slot;
+        $("btnGoTo4").disabled = false;
+      });
+    });
+
+  } catch (e) {
+    hint.textContent = "Error consultando disponibilidad.";
+    box.innerHTML = "";
+  }
+}
+
+function updateSummary() {
+  const s = state.services.find(x => x.id === Number($("serviceSelect")?.value));
+  const b = state.members.find(x => x.id === Number($("barberSelect")?.value));
+  const date = $("dateInput").value;
+  const time = state.selectedTime;
+
+  safeText("sumService", s ? `${s.name} ($${s.price})` : "—");
+  safeText("sumBarber", b ? b.name : "—");
+  safeText("sumDateTime", time ? `${date} a las ${time} hs` : "—");
+
+  if (s) {
+    const pct = s.depositPercentage ?? state.barbershop?.defaultDepositPercentage ?? 15;
+    const deposit = Math.round((s.price * pct) / 100);
+    const fee = state.barbershop?.platformFee ?? 0;
+    const total = deposit + fee;
+    safeText("sumDeposit", `$${total}`);
+  }
+}
+
+// =====================
+// STEP NAVIGATION
+// =====================
+function goStep(n) {
+  currentStep = n;
+
+  document.querySelectorAll(".wizard-step").forEach((el, idx) => {
+    el.classList.toggle("is-visible", idx + 1 === n);
   });
 
-  const btnBook = $("btnBook");
-  if (btnBook) btnBook.addEventListener("click", book);
+  document.querySelectorAll(".step-indicator").forEach((el) => {
+    const s = Number(el.dataset.step);
+    el.classList.toggle("is-active", s === n);
+    el.classList.toggle("is-done", s < n);
+  });
 
-  // estado inicial
-  refreshBookButton();
-  updateSideSummary();
-  showStep(1);
-}
+  window.scrollTo({ top: 0, behavior: "smooth" });
 
-async function loadSlots() {
-  const serviceId = $("serviceSelect")?.value;
-  const barberId = $("barberSelect")?.value;
-  const date = $("dateInput")?.value;
-
-  if ($("bookMsg")) $("bookMsg").textContent = "";
-
-  try {
-    const data = await apiGet(
-      `/public/${slug}/availability?barberId=${encodeURIComponent(barberId)}&serviceId=${encodeURIComponent(serviceId)}&date=${encodeURIComponent(date)}`
-    );
-    renderSlots(data.slots || []);
-  } catch (e) {
-    if ($("slotHint")) $("slotHint").textContent = "Error cargando horarios: " + e.message;
+  if (n === 3) {
+    // Si entramos al step 3, auto-cargamos horarios
+    renderSlotsAvailable();
+  }
+  
+  if (n === 4) {
+    updateSummary();
+    validateForm();
   }
 }
 
-async function book() {
-  const serviceId = Number($("serviceSelect")?.value);
-  const date = $("dateInput")?.value;
+// =====================
+// FORM & BOOKING
+// =====================
+function validateForm() {
+  const name = $("nameInput").value.trim();
+  const phone = $("phoneInput").value.trim();
+  $("btnBook").disabled = !(name && phone);
+}
+
+async function handleBook() {
+  const serviceId = Number($("serviceSelect").value);
+  const barberId = Number($("barberSelect").value);
+  const date = $("dateInput").value;
   const time = state.selectedTime;
-  const customerName = $("nameInput")?.value.trim() || "";
-  const customerPhone = $("phoneInput")?.value.trim() || "";
-  const customerEmail = $("emailInput")?.value.trim() || "";
-  const notes = $("notesInput")?.value.trim() || "";
+  const name = $("nameInput").value.trim();
+  const phone = $("phoneInput").value.trim();
+  const email = $("emailInput").value.trim();
+  
+  const errBox = $("bookAlert");
+  const succBox = $("bookMsgSuccess");
+  errBox.style.display = "none";
+  succBox.style.display = "none";
 
-  if (!time) return;
-
-  // ✅ validar antes del try
-  if (!customerName || !customerPhone) {
-    if ($("bookMsg")) $("bookMsg").textContent = "Completá nombre y teléfono.";
-    refreshBookButton();
-    return;
-  }
-
+  showLoader("Procesando tu turno...");
+  
   try {
     const resp = await apiPost(`/public/${slug}/book`, {
-      barberId: Number($("barberSelect")?.value),
+      barberId,
       serviceId,
       date,
       time,
-      customerName,
-      customerPhone,
-      customerEmail: customerEmail || null,
-      notes: notes || null,
+      customerName: name,
+      customerPhone: phone,
+      customerEmail: email || null
     });
 
-    if ($("bookMsg")) $("bookMsg").textContent = `Listo ✅ Tu turno quedó pendiente. Código: #${resp.id}`;
-
-    // Limpieza suave
-    state.selectedTime = null;
-    refreshBookButton();
-    renderFinalSummary(); // deja el resumen armado aunque limpie la hora
-    updateSideSummary();
-
-    // Quedate en confirmar (step 4) mostrando el mensaje
-    showStep(4);
-  } catch (e) {
-    if ($("bookMsg")) $("bookMsg").textContent = "No se pudo reservar: " + e.message;
-    loadSlots();
+    hideLoader();
+    
+    // Ocultar formulario, mostrar exito
+    $("btnBook").style.display = "none";
+    $("btnBackTo3").style.display = "none";
+    $("btnPayDeposit").style.display = "none";
+    
+    succBox.textContent = `¡Reserva Confirmada! Código: #${resp.id}`;
+    succBox.style.display = "block";
+    
+  } catch (err) {
+    hideLoader();
+    errBox.textContent = "No logramos confirmar el turno: " + err.message;
+    errBox.style.display = "block";
   }
 }
 
-init().catch(err => {
-  safeText($("shopTitle"), "Error");
-  safeText($("shopMeta"), err.message);
-});
+
+// =====================
+// UTILS & LISTENERS
+// =====================
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, (s) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;"
+  }[s]));
+}
+
+function showLoader(txt) {
+  safeText("wizardLoaderText", txt);
+  $("wizardLoader")?.classList.add("is-active");
+}
+
+function hideLoader() {
+  $("wizardLoader")?.classList.remove("is-active");
+}
+
+function attachListeners() {
+  $("btnGoTo2")?.addEventListener("click", () => goStep(2));
+  $("btnBackTo1")?.addEventListener("click", () => goStep(1));
+  $("btnGoTo3")?.addEventListener("click", () => goStep(3));
+  $("btnBackTo2")?.addEventListener("click", () => goStep(2));
+  $("btnGoTo4")?.addEventListener("click", () => goStep(4));
+  $("btnBackTo3")?.addEventListener("click", () => goStep(3));
+  
+  $("dateInput")?.addEventListener("change", renderSlotsAvailable);
+  $("nameInput")?.addEventListener("input", validateForm);
+  $("phoneInput")?.addEventListener("input", validateForm);
+  
+  $("btnBook")?.addEventListener("click", handleBook);
+}
+
+// Bootstrap
+if (!slug) {
+  safeText("shopTitle", "Aviso");
+  safeText("shopMeta", "Falta el identificador de la barbería en la URL.");
+} else {
+  attachListeners();
+  fetchInitialData();
+}

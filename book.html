@@ -2,180 +2,169 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Reservar turno - BarberCloud</title>
-  <link rel="stylesheet" href="./styles.css" />
+  <link rel="stylesheet" href="./book.css" />
 </head>
 
-<body class="app" data-page="book">
+<body data-page="book">
+  
   <div class="wrap">
-    <!-- Header barber -->
-    <div class="book-card">
-      <!-- Mantengo tus IDs para que book.js siga andando -->
-      <h1 id="shopTitle" class="book-title">Cargando…</h1>
-      <div id="shopMeta" class="book-subtitle"></div>
+    
+    <!-- HEADER MARCA BARBERÍA -->
+    <header class="shop-header">
+      <img id="shopLogo" class="shop-logo" src="" style="display:none;" alt="Logo Barbería" />
+      <div id="shopLogoFallback" class="shop-logo-fallback">B</div>
+      <h1 id="shopTitle" class="shop-title">Cargando...</h1>
+      <div id="shopMeta" class="shop-meta">Por favor esperá unos segundos...</div>
+    </header>
 
-      <!-- Stepper -->
-      <div class="stepper" id="stepper">
-        <div class="step is-active" data-step="1"><span class="dot">1</span> Servicio</div>
-        <div class="step" data-step="2"><span class="dot">2</span> Horarios</div>
-        <div class="step" data-step="3"><span class="dot">3</span> Datos</div>
-        <div class="step" data-step="4"><span class="dot">4</span> Confirmar</div>
+    <!-- STEAMBAR -->
+    <div class="stepper-container" id="stepper">
+      <div class="step-indicator is-active" data-step="1">
+        <div class="step-dot">1</div><div class="step-label">Servicio</div>
+      </div>
+      <div class="step-indicator" data-step="2">
+        <div class="step-dot">2</div><div class="step-label">Barbero</div>
+      </div>
+      <div class="step-indicator" data-step="3">
+        <div class="step-dot">3</div><div class="step-label">Horario</div>
+      </div>
+      <div class="step-indicator" data-step="4">
+        <div class="step-dot">4</div><div class="step-label">Datos</div>
       </div>
     </div>
 
-    <div class="book-shell">
-      <!-- Wizard principal -->
-      <div class="wizard">
-
-        <!-- STEP 1 -->
-        <section class="book-card wizard-step is-visible" id="step1">
-          <h2 class="book-title">Elegí servicio y fecha</h2>
-          <p class="book-subtitle">Primero elegí qué te vas a hacer, después buscamos horarios disponibles.</p>
-
-          <div class="field">
-            <label>Servicio</label>
-            <div class="select-wrap">
-              <!-- ID original -->
-              <select id="serviceSelect"></select>
-            </div>
-          </div>
-
-          <div class="field">
-            <label>Barbero</label>
-            <div class="select-wrap">
-              <select id="barberSelect" disabled>
-                <option value="">-- Primero elegí un servicio --</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="field">
-            <label>Fecha</label>
-            <!-- ID original -->
-            <input type="date" id="dateInput" />
-            <div class="hint">Elegí fecha y barbero, luego tocá “Ver horarios”.</div>
-          </div>
-
-          <!-- ID original -->
-          <div id="serviceSummary" class="summary-pill"></div>
-
-          <div class="actions">
-            <!-- ID original que tu book.js ya usa -->
-            <button class="btn btn-primary" id="btnLoad">Ver horarios</button>
-          </div>
-        </section>
-
-        <!-- STEP 2 -->
-        <section class="book-card wizard-step" id="step2">
-          <h2 class="book-title">Horarios disponibles</h2>
-
-          <!-- ID original -->
-          <p class="book-subtitle" id="slotHint">Elegí un horario para continuar.</p>
-
-          <!-- ID original -->
-          <div id="slots"></div>
-
-          <div class="actions">
-            <!-- Estos IDs son nuevos (para tu futuro wizard JS). No rompen nada si book.js no los usa -->
-            <button class="btn btn-ghost" id="btnBackTo1" type="button">Volver</button>
-            <button class="btn btn-primary" id="btnGoTo3" type="button" disabled>Continuar</button>
-          </div>
-        </section>
-
-        <!-- STEP 3 -->
-        <section class="book-card wizard-step" id="step3">
-          <h2 class="book-title">Tus datos</h2>
-          <p class="book-subtitle">Esto le llega a la barbería para confirmar tu turno.</p>
-
-          <div class="field">
-            <label>Nombre</label>
-            <!-- ID original -->
-            <input id="nameInput" placeholder="Tu nombre" />
-          </div>
-
-          <div class="field">
-            <label>Teléfono</label>
-            <!-- ID original -->
-            <input id="phoneInput" placeholder="351..." />
-          </div>
-
-          <div class="field">
-            <label>Email (opcional)</label>
-            <!-- ID original -->
-            <input id="emailInput" placeholder="tu@email.com" />
-          </div>
-
-          <div class="field">
-            <label>Nota (opcional)</label>
-            <!-- ID original (vos lo tenías antes) -->
-            <input id="notesInput" placeholder="Ej: llego 10 min tarde" />
-          </div>
-
-          <div class="actions">
-            <button class="btn btn-ghost" id="btnBackTo2" type="button">Volver</button>
-            <button class="btn btn-primary" id="btnGoTo4" type="button">Continuar</button>
-          </div>
-        </section>
-
-        <!-- STEP 4 -->
-        <section class="book-card wizard-step" id="step4">
-          <h2 class="book-title">Resumen y seña</h2>
-          <p class="book-subtitle">Revisá todo antes de confirmar.</p>
-
-          <div class="summary-pill" id="finalSummary">—</div>
-
-          <div class="paybox">
-            <div class="paytitle">Pago de seña</div>
-            <div class="hint">
-              Próximamente: Mercado Pago. Por ahora podés dejar este botón como “placeholder”.
-            </div>
-            <button class="btn btn-secondary" id="btnPayDeposit" type="button" disabled>
-              Pagar seña (próximamente)
-            </button>
-          </div>
-
-          <div class="actions">
-            <button class="btn btn-ghost" id="btnBackTo3" type="button">Volver</button>
-
-            <!-- ID original: tu book.js ya lo usa -->
-            <button class="btn btn-primary" id="btnBook" type="button">
-              Confirmar turno
-            </button>
-          </div>
-
-          <!-- ID original (antes era bookMsg) -->
-          <div id="bookMsg" class="hint" style="margin-top:10px"></div>
-        </section>
+    <!-- Cuerpos del WIZARD -->
+    <div class="wizard-container relative">
+      
+      <!-- LOADER GLOBAL DE WIZARD (Por ej: esperando turnos/render) -->
+      <div class="loader-overlay" id="wizardLoader">
+        <div class="spinner"></div>
+        <div class="loader-text" id="wizardLoaderText">Cargando disponibilidad...</div>
       </div>
 
-      <!-- Resumen lateral fijo (confianza) -->
-      <aside class="book-card side">
-        <div class="book-title" style="font-size:1.05rem">Tu turno</div>
-        <div class="book-subtitle" style="margin-bottom:6px">Se actualiza en vivo.</div>
+      <!-- STEP 1: SERVICIO -->
+      <section class="book-card wizard-step is-visible" id="step1">
+        <div class="step-title">1. ¿Qué te vas a hacer?</div>
+        <p class="step-subtitle">Seleccioná el servicio para tu turno.</p>
+        
+        <div id="servicesList" class="selection-list">
+          <!-- Skeletons en carga inicial -->
+          <div class="skeleton sk-card"></div>
+          <div class="skeleton sk-card"></div>
+        </div>
+        
+        <!-- Input oculto para lógica js anterior -->
+        <input type="hidden" id="serviceSelect" value="" />
+        
+        <div class="actions">
+          <button class="btn btn-primary" id="btnGoTo2" type="button" disabled>Siguiente</button>
+        </div>
+      </section>
 
-        <div class="divider"></div>
+      <!-- STEP 2: BARBERO -->
+      <section class="book-card wizard-step" id="step2">
+        <div class="step-title">2. Elegí a tu barbero</div>
+        <p class="step-subtitle">¿Con quién te querés atender?</p>
 
-        <div class="kv">
-          <div class="k">Servicio</div><div class="v" id="sideService">—</div>
-          <div class="k">Fecha</div><div class="v" id="sideDate">—</div>
-          <div class="k">Hora</div><div class="v" id="sideTime">—</div>
-          <div class="k">Seña</div><div class="v" id="sideDeposit">—</div>
+        <div id="barbersList" class="selection-list">
+          <div class="hint">Primero seleccioná un servicio.</div>
         </div>
 
-        <div class="divider"></div>
+        <input type="hidden" id="barberSelect" value="" />
 
-        <div class="hint">
-          ✔️ Confirmación rápida<br/>
-          ✔️ Datos protegidos<br/>
-          ✔️ Turnos ordenados en agenda
+        <div class="actions">
+          <button class="btn btn-ghost" id="btnBackTo1" type="button">Volver</button>
+          <button class="btn btn-primary" id="btnGoTo3" type="button" disabled>Siguiente</button>
         </div>
-      </aside>
+      </section>
+
+      <!-- STEP 3: FECHA Y HORARIO -->
+      <section class="book-card wizard-step" id="step3">
+        <div class="step-title">3. Fecha y Horario</div>
+        <p class="step-subtitle">Buscá un hueco disponible en la agenda.</p>
+
+        <div class="field">
+          <label class="label">Fecha</label>
+          <input type="date" class="input" id="dateInput" />
+        </div>
+
+        <div style="margin-top: 16px;">
+          <label class="label">Horarios Disponibles</label>
+          <div id="slotHint" class="step-subtitle" style="font-size: 13px; margin-bottom: 8px;">Las franjas se calculan en vivo según la duración.</div>
+          <div id="slots" class="slots-grid">
+            <!-- Rellenado por JS -->
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="btn btn-ghost" id="btnBackTo2" type="button">Volver</button>
+          <button class="btn btn-primary" id="btnGoTo4" type="button" disabled>Continuar</button>
+        </div>
+      </section>
+
+      <!-- STEP 4: DATOS DEL CLIENTE -->
+      <section class="book-card wizard-step" id="step4">
+        <div class="step-title">4. Tus Datos</div>
+        <p class="step-subtitle">Ingresá tu contacto para reservar o pagar la seña.</p>
+
+        <!-- Box de resumen minimalista -->
+        <div class="summary-box" style="margin-bottom: 24px;">
+          <div class="summary-row">
+            <span style="color:var(--text-muted)">Servicio</span>
+            <span id="sumService" style="font-weight:600">—</span>
+          </div>
+          <div class="summary-row">
+            <span style="color:var(--text-muted)">Barbero</span>
+            <span id="sumBarber">—</span>
+          </div>
+          <div class="summary-row">
+            <span style="color:var(--text-muted)">Cuándo</span>
+            <span id="sumDateTime">—</span>
+          </div>
+          <div class="summary-row total">
+            <span>A pagar HOY (Seña)</span>
+            <span id="sumDeposit">$0</span>
+          </div>
+        </div>
+
+        <div id="bookAlert" class="alert alert-error"></div>
+
+        <div class="field">
+          <label class="label">Nombre completo</label>
+          <input class="input" id="nameInput" placeholder="Ej: Juan Pérez" autocomplete="name" />
+        </div>
+
+        <div class="field">
+          <label class="label">WhatsApp</label>
+          <input class="input" id="phoneInput" type="tel" placeholder="Ej: 351..." autocomplete="tel" />
+        </div>
+        
+        <div class="field">
+          <label class="label">Email (opcional)</label>
+          <input class="input" id="emailInput" type="email" placeholder="tu@email.com" autocomplete="email" />
+        </div>
+
+        <div class="actions" style="flex-wrap: wrap;">
+          <button class="btn btn-ghost" id="btnBackTo3" type="button" style="flex-basis: 100%;">Volver</button>
+          <!-- BOTÓN PAGO (Próximamente) -->
+          <button class="btn btn-secondary" id="btnPayDeposit" type="button" style="display: none; width: 100%; border: 1px solid var(--border); background: var(--bg); margin-top: 12px;" disabled>
+            Pagar seña (Próximamente)
+          </button>
+          <!-- BOTÓN CONFIRMAR AHORA -->
+          <button class="btn btn-primary" id="btnBook" type="button" style="flex-basis: 100%; margin-top: 12px;">
+            Confirmar Reserva
+          </button>
+        </div>
+        
+        <div id="bookMsgSuccess" class="alert alert-success" style="margin-top: 16px; text-align: center; font-weight: 600;"></div>
+      </section>
+
     </div>
   </div>
 
   <script>
-    // API base
     window.API_BASE = "https://barbercloud.onrender.com/api";
   </script>
   <script src="./book.js"></script>
