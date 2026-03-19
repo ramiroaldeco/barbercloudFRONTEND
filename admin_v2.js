@@ -594,14 +594,20 @@ document.addEventListener("click", (e) => {
   }
 });
 
-// ✅ Enganche pedido: un único addEventListener por ID
+// ✅ Enganche pedido: event listeners para ambos botones de agregar turno
 (function bindQuickAddOnce() {
-  const btn = document.getElementById("btnQuickAdd");
-  if (!btn) return;
-  // evita duplicar listeners si el script se carga 2 veces
-  if (btn.dataset.bound === "1") return;
-  btn.dataset.bound = "1";
-  btn.addEventListener("click", openAddTurnModal);
+  const btn1 = document.getElementById("btnQuickAdd");
+  const btn2 = document.getElementById("btnQuickAddAgenda");
+
+  if (btn1 && btn1.dataset.bound !== "1") {
+    btn1.dataset.bound = "1";
+    btn1.addEventListener("click", openAddTurnModal);
+  }
+
+  if (btn2 && btn2.dataset.bound !== "1") {
+    btn2.dataset.bound = "1";
+    btn2.addEventListener("click", openAddTurnModal);
+  }
 })();
 
 // ---- Servicios ----
