@@ -128,10 +128,9 @@ async function apiPost(path, body) {
 
 function todayISO() {
   const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${dd}`;
+  const utc = d.getTime() + d.getTimezoneOffset() * 60000;
+  const arg = new Date(utc - 3 * 3600000);
+  return arg.toISOString().split("T")[0];
 }
 
 function renderServiceSummary() {

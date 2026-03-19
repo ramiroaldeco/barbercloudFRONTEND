@@ -298,6 +298,7 @@ async function loadAppointments() {
       tr.innerHTML = `
         <td>${escapeHtml(a.date || "")}</td>
         <td>${escapeHtml(a.time || "")}</td>
+        <td>${escapeHtml(a.barber?.name || "\u2014")}</td>
         <td>${escapeHtml(a.service?.name || "")}</td>
         <td>${escapeHtml(a.customerName || "")}</td>
         <td>${escapeHtml(a.customerPhone || "")}</td>
@@ -364,7 +365,7 @@ async function openAddTurnModal() {
       return;
     }
 
-    const todayStr = new Date().toISOString().split("T")[0];
+    const todayStr = (() => { const d = new Date(); const utc = d.getTime() + d.getTimezoneOffset() * 60000; const arg = new Date(utc - 3 * 3600000); return arg.toISOString().split('T')[0]; })();
 
     // Store temporarily in window to avoid multiple complex fetches in handlers
     window._addTurnData = { services, members: activeMembers, shop };
@@ -958,7 +959,8 @@ async function renderCalendar() {
       const appts = grid[key] || [];
       const content = appts.map(a => {
         const badge = a.status === "confirmed" ? "good" : "warn";
-        return `<div class="badge ${badge}" style="font-size:11px;margin:2px 0;display:block">${escapeHtml(a.customerName || "?")} ${escapeHtml(a.time || "")}</div>`;
+        const barberTag = a.barber?.name ? `<span style="opacity:0.6">[${escapeHtml(a.barber.name)}]</span> ` : "";
+        return `<div class="badge ${badge}" style="font-size:11px;margin:2px 0;display:block">${barberTag}${escapeHtml(a.customerName || "?")} ${escapeHtml(a.time || "")}</div>`;
       }).join("");
       return `<td style="vertical-align:top;padding:6px">${content}</td>`;
     }).join("");
@@ -988,10 +990,7 @@ $("btnReload")?.addEventListener("click", async () => {
   await loadShopHeader();
   showView(getRoute());
 });
-
-// ===============================
-// PLANTILLA HORARIA (PRO)
-// ===============================
+// WEEKDAYS helper — usado por el modal de horarios por barbero
 const WEEKDAYS = [
   { i: 0, name: "Domingo" },
   { i: 1, name: "Lunes" },
@@ -1002,432 +1001,94 @@ const WEEKDAYS = [
   { i: 6, name: "Sábado" },
 ];
 
-let whState = {}; // {weekday: [{startTime,endTime}]}
-
-function whEmptyState() {
-  const s = {};
-  for (const d of WEEKDAYS) s[d.i] = [];
-  return s;
-}
-
-function parseTimeToMin(t) {
-  const [h, m] = String(t).split(":").map(Number);
-  return h * 60 + m;
-}
-
-function validateState(state) {
-  for (const d of WEEKDAYS) {
-    const ranges = state[d.i] || [];
-    for (const r of ranges) {
-      if (!r.startTime || !r.endTime) return `Faltan horas en ${d.name}`;
-      if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(r.startTime)) return `Hora inválida en ${d.name}`;
-      if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(r.endTime)) return `Hora inválida en ${d.name}`;
-      if (parseTimeToMin(r.startTime) >= parseTimeToMin(r.endTime)) {
-        return `En ${d.name}, la hora de inicio debe ser menor a la de fin`;
-      }
-    }
-    // no solapes
-    const sorted = [...ranges].sort((a, b) => parseTimeToMin(a.startTime) - parseTimeToMin(b.startTime));
-    for (let i = 1; i < sorted.length; i++) {
-      if (parseTimeToMin(sorted[i].startTime) < parseTimeToMin(sorted[i - 1].endTime)) {
-        return `En ${d.name}, tenés franjas superpuestas`;
-      }
-    }
-  }
-  return null;
-}
-
-async function loadWorkingHours() {
-  const root = document.getElementById("view-horarios");
-  if (!root) return;
-
-  root.innerHTML = `
-    <div class="card" style="margin-bottom:14px">
-      <div class="card-head" style="display:flex;justify-content:space-between;align-items:center;gap:12px">
-        <div>
-          <h3 style="margin:0">Plantilla semanal</h3>
-          <p class="muted" style="margin:6px 0 0">Definí tus horarios por día. Podés tener varias franjas (mañana/tarde).</p>
-        </div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end">
-          <button class="btn" id="btnWhReset">Restablecer</button>
-          <button class="btn primary" id="btnWhSave">Guardar cambios</button>
-        </div>
-      </div>
-    </div>
-
-    <div id="whGrid" class="grid wh-grid"></div>
-
-    <div class="muted" style="margin-top:10px">
-      Tip: si dejás un día sin franjas, queda como <b>cerrado</b>.
-    </div>
-  `;
-
-  // load from API
-  whState = whEmptyState();
+// ===============================
+// BLOQUEOS / VACACIONES — BARBER-CENTRIC
+// Se accede desde la tarjeta del barbero (botón "Bloqueos")
+// ===============================
+async function openBlockedTimesForBarber(barberId, barberName) {
+  // Cargar bloqueos existentes
+  let items = [];
   try {
-    const data = await apiGet("/working-hours/mine");
-    const items = data.items || [];
-    for (const it of items) {
-      const w = Number(it.weekday);
-      if (!whState[w]) whState[w] = [];
-      whState[w].push({ startTime: it.startTime, endTime: it.endTime });
-    }
-    // ordenar
-    for (const d of WEEKDAYS) {
-      whState[d.i].sort((a, b) => parseTimeToMin(a.startTime) - parseTimeToMin(b.startTime));
-    }
+    const data = await apiGet(`/blocked-times/${barberId}`);
+    items = data.items || [];
   } catch (e) {
-    // si no existe todavía, igual mostramos vacío
-    console.warn("No pude cargar working hours:", e.message);
+    console.error("Error cargando bloqueos:", e);
   }
 
-  renderWorkingHours();
-
-  // ✅ 6.3 Llamarlo cuando entras a Plantilla Horaria
-  await loadBlockedTimes();
-
-  document.getElementById("btnWhReset")?.addEventListener("click", () => {
-    if (!confirm("¿Restablecer la plantilla a vacío?")) return;
-    whState = whEmptyState();
-    renderWorkingHours();
-  });
-
-  document.getElementById("btnWhSave")?.addEventListener("click", saveWorkingHours);
-}
-
-function renderWorkingHours() {
-  const grid = document.getElementById("whGrid");
-  if (!grid) return;
-
-  grid.innerHTML = WEEKDAYS.map((d) => {
-    const ranges = whState[d.i] || [];
-    const isClosed = ranges.length === 0;
-
-    const rows = ranges
-      .map(
-        (r, idx) => `
-        <div class="wh-row" style="display:flex;gap:10px;align-items:flex-end;margin-top:10px">
-          <div style="flex:1">
-            <label class="muted" style="display:block;margin-bottom:6px">Desde</label>
-            <input class="input" type="time" data-wh-start="${d.i}:${idx}" value="${escapeAttr(r.startTime)}" />
-          </div>
-          <div style="flex:1">
-            <label class="muted" style="display:block;margin-bottom:6px">Hasta</label>
-            <input class="input" type="time" data-wh-end="${d.i}:${idx}" value="${escapeAttr(r.endTime)}" />
-          </div>
-          <button class="btn" data-wh-del="${d.i}:${idx}" title="Eliminar franja">✕</button>
-        </div>
-      `
-      )
-      .join("");
-
-    return `
-      <div class="card">
-        <div class="card-head" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
-          <div>
-            <h3 style="margin:0">${d.name}</h3>
-            <p class="muted" style="margin:6px 0 0">${isClosed ? "Cerrado" : "Abierto"}</p>
-          </div>
-
-          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:flex-end">
-            <!-- Toggle -->
-            <button class="btn" data-wh-toggle="${d.i}">
-              ${isClosed ? "Abrir" : "Cerrar"}
-            </button>
-
-            <!-- Add -->
-            <button class="btn" data-wh-add="${d.i}" ${isClosed ? "disabled" : ""}>+ Agregar franja</button>
-
-            <!-- Copy -->
-            <button class="btn" data-wh-copy="${d.i}" ${isClosed ? "disabled" : ""}>Copiar</button>
-          </div>
-        </div>
-
-        <div style="margin-top:12px">
-          ${
-            isClosed
-              ? `<div class="muted">Sin franjas. (${d.name} cerrado)</div>`
-              : rows
-          }
-        </div>
-
-        ${
-          isClosed
-            ? ""
-            : `
-          <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap">
-            <button class="btn" data-wh-preset="${d.i}:corrido">Preset: corrido</button>
-            <button class="btn" data-wh-preset="${d.i}:cortado">Preset: cortado</button>
-            <button class="btn" data-wh-preset="${d.i}:tarde">Preset: tarde</button>
-          </div>
-        `
-        }
-      </div>
-    `;
-  }).join("");
-
-  // delegation
-  grid.onclick = (e) => {
-    const addBtn = e.target.closest("[data-wh-add]");
-    const delBtn = e.target.closest("[data-wh-del]");
-    const toggleBtn = e.target.closest("[data-wh-toggle]");
-    const copyBtn = e.target.closest("[data-wh-copy]");
-    const presetBtn = e.target.closest("[data-wh-preset]");
-
-    if (toggleBtn) {
-      const wd = Number(toggleBtn.dataset.whToggle);
-      const ranges = whState[wd] || [];
-      if (ranges.length === 0) {
-        // abrir con default lindo
-        whState[wd] = [{ startTime: "10:00", endTime: "13:00" }, { startTime: "16:00", endTime: "20:00" }];
-      } else {
-        // cerrar
-        whState[wd] = [];
-      }
-      renderWorkingHours();
-      return;
-    }
-
-    if (addBtn) {
-      const wd = Number(addBtn.dataset.whAdd);
-      if (!whState[wd]) whState[wd] = [];
-      whState[wd].push({ startTime: "10:00", endTime: "13:00" });
-      renderWorkingHours();
-      return;
-    }
-
-    if (delBtn) {
-      const [wdStr, idxStr] = String(delBtn.dataset.whDel).split(":");
-      const wd = Number(wdStr);
-      const idx = Number(idxStr);
-      whState[wd].splice(idx, 1);
-      renderWorkingHours();
-      return;
-    }
-
-    if (presetBtn) {
-      const [wdStr, preset] = String(presetBtn.dataset.whPreset).split(":");
-      const wd = Number(wdStr);
-      if (preset === "corrido") {
-        whState[wd] = [{ startTime: "10:00", endTime: "20:00" }];
-      } else if (preset === "cortado") {
-        whState[wd] = [{ startTime: "10:00", endTime: "13:00" }, { startTime: "16:00", endTime: "20:00" }];
-      } else if (preset === "tarde") {
-        whState[wd] = [{ startTime: "16:00", endTime: "21:00" }];
-      }
-      renderWorkingHours();
-      return;
-    }
-
-    if (copyBtn) {
-      const wd = Number(copyBtn.dataset.whCopy);
-      openCopyDayModal(wd);
-      return;
-    }
-  };
-
-  grid.oninput = (e) => {
-    const startEl = e.target.closest("[data-wh-start]");
-    const endEl = e.target.closest("[data-wh-end]");
-    if (startEl) {
-      const [wdStr, idxStr] = String(startEl.dataset.whStart).split(":");
-      const wd = Number(wdStr);
-      const idx = Number(idxStr);
-      whState[wd][idx].startTime = startEl.value;
-    }
-    if (endEl) {
-      const [wdStr, idxStr] = String(endEl.dataset.whEnd).split(":");
-      const wd = Number(wdStr);
-      const idx = Number(idxStr);
-      whState[wd][idx].endTime = endEl.value;
-    }
-  };
-}
-
-// ===============================
-// MODAL “COPIAR DÍA A…”
-// (pegado abajo de renderWorkingHours / bloque plantilla horaria)
-// ===============================
-async function openCopyDayModal(fromWeekday) {
-  const fromName = WEEKDAYS.find(d => d.i === fromWeekday)?.name || "Día";
-
-  const checks = WEEKDAYS
-    .filter(d => d.i !== fromWeekday)
-    .map(d => `
-      <label style="display:flex;gap:10px;align-items:center;margin:8px 0">
-        <input type="checkbox" data-copy-target="${d.i}" />
-        <span>${d.name}</span>
-      </label>
-    `).join("");
-
-  const body = `
-    <div class="muted">Copiar horarios de <b>${fromName}</b> a:</div>
-    <div style="margin-top:10px">${checks}</div>
-    <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap">
-      <button class="btn" id="btnCopyAll">Copiar a toda la semana</button>
-    </div>
-  `;
-
-  const result = await openModal({
-    title: "Copiar horarios",
-    subtitle: "Ahorra tiempo copiando un día a otros días",
-    bodyHtml: body,
-    okText: "Copiar",
-  });
-
-  if (!result?.ok) return;
-
-  // targets seleccionados
-  const targets = Array.from(document.querySelectorAll("[data-copy-target]"))
-    .filter(el => el.checked)
-    .map(el => Number(el.dataset.copyTarget));
-
-  // si tocó ok sin seleccionar nada
-  if (!targets.length) {
-    alert("Seleccioná al menos un día.");
-    return;
-  }
-
-  const source = (whState[fromWeekday] || []).map(r => ({ ...r }));
-  for (const t of targets) {
-    whState[t] = source.map(r => ({ ...r }));
-  }
-  renderWorkingHours();
-}
-
-// botón "copiar a toda la semana" dentro del modal
-document.addEventListener("click", (e) => {
-  const btn = e.target.closest("#btnCopyAll");
-  if (!btn) return;
-  // tilda todos los checkboxes del modal
-  document.querySelectorAll("[data-copy-target]").forEach(el => el.checked = true);
-});
-
-async function saveWorkingHours() {
-  const err = validateState(whState);
-  if (err) return alert(err);
-
-  // flatten
-  const items = [];
-  for (const d of WEEKDAYS) {
-    const ranges = whState[d.i] || [];
-    for (const r of ranges) {
-      items.push({
-        weekday: d.i,
-        startTime: r.startTime,
-        endTime: r.endTime,
-      });
-    }
-  }
-
-  try {
-    await apiPut("/working-hours/mine", { items });
-    alert("Plantilla guardada ✅");
-  } catch (e) {
-    alert("Error guardando: " + e.message);
-  }
-}
-
-// ===============================
-// 6.2 BLOQUEOS / VACACIONES (admin)
-// Pegado en la parte de Plantilla Horaria o al final del archivo
-// ===============================
-async function loadBlockedTimes() {
-  const box = document.getElementById("blocksList");
-  if (!box) return;
-
-  box.innerHTML = `<div class="muted">Cargando bloqueos...</div>`;
-  try {
-    const data = await apiGet("/blocked-times/mine");
-    const items = data.items || [];
-
-    if (!items.length) {
-      box.innerHTML = `<div class="muted">No hay bloqueos.</div>`;
-      return;
-    }
-
-    box.innerHTML = `
-      <div style="display:flex;flex-direction:column;gap:10px">
-        ${items.map(b => {
-          const range = b.dateTo ? `${b.dateFrom} → ${b.dateTo}` : b.dateFrom;
-          const time = (b.startTime && b.endTime) ? ` • ${b.startTime}-${b.endTime}` : ` • Día completo`;
-          const reason = b.reason ? ` • ${escapeHtml(b.reason)}` : "";
-          return `
-            <div class="card" style="padding:12px;display:flex;justify-content:space-between;align-items:center;gap:12px">
-              <div>
-                <div><b>${range}</b>${time}${reason}</div>
-              </div>
-              <button class="btn" data-del-block="${b.id}">Eliminar</button>
-            </div>
-          `;
-        }).join("")}
-      </div>
-    `;
-
-    box.onclick = async (e) => {
-      const btn = e.target.closest("[data-del-block]");
-      if (!btn) return;
-      const id = btn.dataset.delBlock;
-
-      if (!confirm("¿Eliminar este bloqueo?")) return;
-      await apiDelete(`/blocked-times/mine/${id}`);
-      await loadBlockedTimes();
-    };
-
-  } catch (e) {
-    box.innerHTML = `<div class="muted">Error cargando bloqueos: ${escapeHtml(e.message)}</div>`;
-  }
-}
-
-async function openAddBlockModal() {
-  const body = `
-    <label class="muted">Desde (YYYY-MM-DD)</label>
-    <input id="blkFrom" class="input" type="date" />
-
-    <label class="muted" style="margin-top:10px;display:block">Hasta (opcional)</label>
-    <input id="blkTo" class="input" type="date" />
-
-    <div style="margin-top:10px" class="muted">Si no ponés horas, se bloquea el día completo.</div>
-
-    <div style="display:flex;gap:10px;margin-top:10px">
-      <div style="flex:1">
-        <label class="muted">Desde</label>
-        <input id="blkStart" class="input" type="time" />
-      </div>
-      <div style="flex:1">
-        <label class="muted">Hasta</label>
-        <input id="blkEnd" class="input" type="time" />
-      </div>
-    </div>
-
-    <label class="muted" style="margin-top:10px;display:block">Motivo (opcional)</label>
-    <input id="blkReason" class="input" placeholder="Vacaciones / médico / etc." />
-  `;
+  const listHtml = items.length
+    ? items.map(b => {
+        const range = b.dateTo ? `${b.dateFrom} → ${b.dateTo}` : b.dateFrom;
+        const time = (b.startTime && b.endTime) ? ` • ${b.startTime}-${b.endTime}` : ` • Día completo`;
+        const reason = b.reason ? ` • ${escapeHtml(b.reason)}` : "";
+        return `
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px;background:var(--surface);border-radius:6px;border:1px solid var(--border);margin-bottom:6px">
+            <div><b>${range}</b>${time}${reason}</div>
+            <button class="btn" data-del-block="${b.id}" style="flex-shrink:0">✕</button>
+          </div>`;
+      }).join("")
+    : `<div class="muted">Sin bloqueos activos.</div>`;
 
   const res = await openModal({
-    title: "Nuevo bloqueo",
-    subtitle: "Esto se va a reflejar en los horarios disponibles del booking",
-    bodyHtml: body,
-    okText: "Guardar",
+    title: "Bloqueos de " + escapeHtml(barberName),
+    subtitle: "Vacaciones, ausencias, franjas bloqueadas",
+    bodyHtml: `
+      <div id="blocksListModal" style="margin-bottom:16px">${listHtml}</div>
+      <hr style="border-color:var(--border);margin:12px 0"/>
+      <h4 style="margin:0 0 10px">Agregar nuevo bloqueo</h4>
+      <label class="muted">Desde (fecha)</label>
+      <input id="blkFrom" class="input" type="date" />
+      <label class="muted" style="margin-top:8px;display:block">Hasta (opcional)</label>
+      <input id="blkTo" class="input" type="date" />
+      <div style="margin-top:8px" class="muted">Si no ponés horas, se bloquea el día completo.</div>
+      <div style="display:flex;gap:10px;margin-top:8px">
+        <div style="flex:1">
+          <label class="muted">Hora desde</label>
+          <input id="blkStart" class="input" type="time" />
+        </div>
+        <div style="flex:1">
+          <label class="muted">Hora hasta</label>
+          <input id="blkEnd" class="input" type="time" />
+        </div>
+      </div>
+      <label class="muted" style="margin-top:8px;display:block">Motivo (opcional)</label>
+      <input id="blkReason" class="input" placeholder="Vacaciones / médico / etc." />
+    `,
+    okText: "Agregar bloqueo",
   });
+
+  // Manejar borrado dentro del modal
+  const listEl = document.getElementById("blocksListModal");
+  if (listEl) {
+    listEl.onclick = async (ev) => {
+      const btn = ev.target.closest("[data-del-block]");
+      if (!btn) return;
+      const id = btn.dataset.delBlock;
+      if (!confirm("¿Eliminar este bloqueo?")) return;
+      try {
+        await apiDelete(`/blocked-times/${barberId}/${id}`);
+        closeModal(null);
+        openBlockedTimesForBarber(barberId, barberName);
+      } catch (err) { alert("Error: " + err.message); }
+    };
+  }
+
   if (!res?.ok) return;
 
   const dateFrom = document.getElementById("blkFrom")?.value;
+  if (!dateFrom) { alert("La fecha 'Desde' es obligatoria."); return; }
+
   const dateTo = document.getElementById("blkTo")?.value || null;
   const startTime = document.getElementById("blkStart")?.value || null;
   const endTime = document.getElementById("blkEnd")?.value || null;
   const reason = document.getElementById("blkReason")?.value || null;
 
-  await apiPost("/blocked-times/mine", { dateFrom, dateTo, startTime, endTime, reason });
-  await loadBlockedTimes();
+  try {
+    await apiPost(`/blocked-times/${barberId}`, { dateFrom, dateTo, startTime, endTime, reason });
+    alert("Bloqueo creado ✅");
+  } catch (err) {
+    alert("Error creando bloqueo: " + err.message);
+  }
 }
-
-// Hook botón
-document.addEventListener("click", (e) => {
-  const b = e.target.closest("#btnAddBlock");
-  if (!b) return;
-  openAddBlockModal();
-});
 
 // ===============================
 // 7. MÓDULO DE MIEMBROS
@@ -1467,6 +1128,7 @@ async function loadMembers() {
           <div style="margin-top:auto; display:flex; gap:8px; flex-wrap:wrap">
             <button class="btn" data-edit-member="${m.id}" style="flex:1">Editar</button>
             <button class="btn" data-schedule-member="${m.id}" style="flex:1; background:var(--surface);">Horarios</button>
+            <button class="btn" data-blocks-member="${m.id}" data-blocks-name="${escapeAttr(m.name)}" style="flex:1; background:var(--surface);">Bloqueos</button>
             <button class="icon-btn" data-del-member="${m.id}" style="color:#ef4444" title="Desactivar">✕</button>
           </div>
         </div>
@@ -1588,6 +1250,14 @@ $("membersGrid")?.addEventListener("click", async (e) => {
   const editBtn = e.target.closest("[data-edit-member]");
   const delBtn = e.target.closest("[data-del-member]");
   const schBtn = e.target.closest("[data-schedule-member]");
+  const blkBtn = e.target.closest("[data-blocks-member]");
+  
+  if (blkBtn) {
+    const id = blkBtn.dataset.blocksMember;
+    const name = blkBtn.dataset.blocksName || "Barbero";
+    await openBlockedTimesForBarber(Number(id), name);
+    return;
+  }
   
   if (delBtn) {
     const id = delBtn.dataset.delMember;
