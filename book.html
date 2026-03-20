@@ -148,10 +148,9 @@
 
         <div class="actions" style="flex-wrap: wrap;">
           <button class="btn btn-ghost" id="btnBackTo3" type="button" style="flex-basis: 100%;">Volver</button>
-          <!-- BOTÓN PAGO (Próximamente) -->
-          <button class="btn btn-secondary" id="btnPayDeposit" type="button" style="display: none; width: 100%; border: 1px solid var(--border); background: var(--bg); margin-top: 12px;" disabled>
-            Pagar seña (Próximamente)
-          </button>
+          <!-- CONTENEDOR MERCADO PAGO SDK -->
+          <div id="mpCheckoutBtn" style="width: 100%; display: none; margin-top: 12px; text-align: center;"></div>
+          
           <!-- BOTÓN CONFIRMAR AHORA -->
           <button class="btn btn-primary" id="btnBook" type="button" style="flex-basis: 100%; margin-top: 12px;">
             Confirmar Reserva
@@ -167,6 +166,7 @@
   <script>
     window.API_BASE = "https://barbercloud.onrender.com/api";
   </script>
+  <script src="https://sdk.mercadopago.com/js/v2"></script>
   <script src="./book.js"></script>
 </body>
 </html>

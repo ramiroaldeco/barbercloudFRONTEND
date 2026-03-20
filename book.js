@@ -312,13 +312,39 @@ async function handleBook() {
 
     hideLoader();
     
-    // Ocultar formulario, mostrar exito
     $("btnBook").style.display = "none";
     $("btnBackTo3").style.display = "none";
-    $("btnPayDeposit").style.display = "none";
     
-    succBox.textContent = `¡Reserva Confirmada! Código: #${resp.id}`;
-    succBox.style.display = "block";
+    if (resp.status === "payment_pending" && resp.preferenceId && resp.mpPublicKey) {
+       // CAMINO A: El sistema exige seña online
+       succBox.textContent = `Tu turno está guardado temporalmente. Tenés 10 minutos para pagar la seña y confirmarlo (#${resp.id}).`;
+       
+       // Truquito: Convertir cartón verde de exito en advertencia amarilla visual
+       succBox.className = "alert"; 
+       succBox.style.backgroundColor = "rgba(234, 179, 8, 0.1)"; // Amarillo Warning
+       succBox.style.color = "#ca8a04";
+       succBox.style.border = "1px solid #eab308";
+       succBox.style.display = "block";
+       
+       $("mpCheckoutBtn").style.display = "block";
+       
+       // Inicializar SDk y renderizar Checkout Button embebido
+       const mp = new MercadoPago(resp.mpPublicKey, { locale: 'es-AR' });
+       mp.checkout({
+          preference: { id: resp.preferenceId },
+          render: {
+             container: '#mpCheckoutBtn', 
+             label: 'Pagar ahora para Confirmar' 
+          },
+          theme: { elementsColor: '#009ee3' }
+       });
+       
+    } else {
+       // CAMINO B (o error MP): Confirmación clásica en el local (Turno en pending real)
+       succBox.textContent = `¡Reserva tomada con éxito! Abonás todo en el local. Ticket: #${resp.id}`;
+       succBox.className = "alert alert-success"; 
+       succBox.style.display = "block";
+    }
     
   } catch (err) {
     hideLoader();

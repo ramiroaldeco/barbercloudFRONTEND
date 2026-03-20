@@ -1283,18 +1283,33 @@ async function loadMembers() {
           <div style="display:flex; align-items:center; gap:12px;">
             <img src="${avatarSrc}" alt="${escapeAttr(m.name)}" style="width:60px; height:60px; border-radius:50%; object-fit:cover; border:2px solid var(--border-h);" />
             <div>
-              <h3 style="margin:0">${escapeHtml(m.name)}</h3>
+              <h3 style="margin:0; display:flex; align-items:center; gap:8px;">
+                ${escapeHtml(m.name)}
+                ${m.mpStatus === 'CONNECTED' ? '<span title="Mercado Pago Conectado" style="font-size:12px;">✅</span>' : '<span title="Mercado Pago NO Conectado" style="font-size:12px;">⚠</span>'}
+              </h3>
               <p class="muted" style="margin:4px 0 0; font-size:13px;">${escapeHtml(m.role)}</p>
             </div>
           </div>
           <div>
             <p style="font-size:13px; margin:0"><b>Servicios:</b> <span class="muted">${escapeHtml(servicesNames)}</span></p>
           </div>
-          <div style="margin-top:auto; display:flex; gap:8px; flex-wrap:wrap">
-            <button class="btn" data-edit-member="${m.id}" style="flex:1">Editar</button>
-            <button class="btn" data-schedule-member="${m.id}" style="flex:1; background:var(--surface);">Horarios</button>
-            <button class="btn" data-blocks-member="${m.id}" data-blocks-name="${escapeAttr(m.name)}" style="flex:1; background:var(--surface);">Bloqueos</button>
-            <button class="icon-btn" data-del-member="${m.id}" style="color:#ef4444" title="Desactivar">✕</button>
+          <div style="margin-top:auto; display:flex; flex-direction:column; gap:8px;">
+            ${m.mpStatus !== 'CONNECTED' ? `
+              <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid var(--danger); padding: 8px; border-radius: 6px; font-size: 12px; color: #fca5a5; text-align: center;">
+                <b>Mercado Pago no conectado.</b><br>Las reservas de este profesional quedarán pendientes y no cobrará seña online.
+              </div>
+            ` : ''}
+            <div style="display:flex; gap:8px; flex-wrap:wrap">
+              <button class="btn" data-mp-member="${m.id}" style="flex:1; border-color:#009ee3; color:#009ee3; background:rgba(0,158,227,0.1)">
+                ${m.mpStatus === 'CONNECTED' ? 'Reconectar MP' : 'Conectar MP'}
+              </button>
+            </div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap">
+              <button class="btn" data-edit-member="${m.id}" style="flex:1">Editar</button>
+              <button class="btn" data-schedule-member="${m.id}" style="flex:1; background:var(--surface);">Horarios</button>
+              <button class="btn" data-blocks-member="${m.id}" data-blocks-name="${escapeAttr(m.name)}" style="flex:1; background:var(--surface);">Bloqueos</button>
+              <button class="icon-btn" data-del-member="${m.id}" style="color:#ef4444" title="Desactivar">✕</button>
+            </div>
           </div>
         </div>
       `;
@@ -1416,7 +1431,21 @@ $("membersGrid")?.addEventListener("click", async (e) => {
   const delBtn = e.target.closest("[data-del-member]");
   const schBtn = e.target.closest("[data-schedule-member]");
   const blkBtn = e.target.closest("[data-blocks-member]");
+  const mpBtn = e.target.closest("[data-mp-member]");
   
+  if (mpBtn) {
+    const id = mpBtn.dataset.mpMember;
+    const m = (window._cachedMembers || []).find(x => String(x.id) === id);
+    if (!m) return;
+    
+    if (m.mpStatus === "CONNECTED") {
+      if (!confirm("Este barbero ya tiene Mercado Pago asociado. ¿Querés reconectarlo?")) return;
+    }
+    // Redirigimos al endpoint de OAuth, asegurándonos de usar la base correcta (API dev/prod)
+    window.location.href = `${API}/payments/oauth/authorize?barberId=${id}`;
+    return;
+  }
+
   if (blkBtn) {
     const id = blkBtn.dataset.blocksMember;
     const name = blkBtn.dataset.blocksName || "Barbero";
