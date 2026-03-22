@@ -266,12 +266,44 @@ async function loadShopHeader() {
 }
 
 // ---- Agenda ----
-function statusBadge(status) {
+function statusBadge(status, lockExpiresAt) {
   if (status === "CONFIRMED" || status === "confirmed") return `<span class="badge good">● Confirmado</span>`;
   if (status === "CANCELLED_MANUAL" || status === "canceled" || status === "CANCELLED_EXPIRED") return `<span class="badge bad">● Cancelado</span>`;
-  if (status === "PENDING_PAYMENT" || status === "payment_pending") return `<span class="badge warn">● Seña Bloqueada...</span>`;
+  if (status === "PENDING_PAYMENT" || status === "payment_pending") {
+     if (lockExpiresAt) return `<span class="badge warn" data-expires="${lockExpiresAt}" style="font-weight:bold; color:#b45309; background:#fef3c7; border:1px solid #f59e0b;">Esperando seña 🕒 ...</span>`;
+     return `<span class="badge warn">● Seña Bloqueada...</span>`;
+  }
   return `<span class="badge warn">● Pendiente Local</span>`;
 }
+
+// FASE 7.1: Motor reactivo temporal de la agenda
+setInterval(() => {
+  const badges = document.querySelectorAll('span[data-expires]');
+  if (!badges.length) return;
+
+  const now = new Date();
+  let needsReload = false;
+
+  badges.forEach(b => {
+    const exp = new Date(b.dataset.expires);
+    const diffMs = exp.getTime() - now.getTime();
+
+    if (diffMs <= 0) {
+      b.textContent = "Expirando...";
+      b.removeAttribute("data-expires");
+      needsReload = true;
+    } else {
+      const totalSecs = Math.floor(diffMs / 1000);
+      const mins = Math.floor(totalSecs / 60);
+      const secs = totalSecs % 60;
+      b.textContent = `Esperando seña 🕒 ${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    }
+  });
+
+  if (needsReload && typeof loadAppointments === "function") {
+     loadAppointments();
+  }
+}, 1000);
 
 async function loadAppointments() {
   const tbody = document.querySelector("#appointmentsTable tbody");
@@ -313,7 +345,7 @@ async function loadAppointments() {
         <td>${escapeHtml(a.service?.name || "")}</td>
         <td>${escapeHtml(a.customerName || "")}</td>
         <td>${escapeHtml(a.customerPhone || "")}</td>
-        <td>${statusBadge(a.status)}</td>
+        <td>${statusBadge(a.status, a.lockExpiresAt)}</td>
         <td class="right">
           <button class="btn" data-act="confirm" data-id="${a.id}">Confirmar</button>
           <button class="btn" data-act="cancel" data-id="${a.id}">Cancelar</button>

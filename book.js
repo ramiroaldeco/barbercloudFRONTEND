@@ -317,7 +317,7 @@ async function handleBook() {
     
     if (resp.status === "PENDING_PAYMENT" && resp.preferenceId && resp.mpPublicKey) {
        // CAMINO A: El sistema exige seña online
-       succBox.textContent = `Tu turno está guardado temporalmente. Tenés 10 minutos para pagar la seña y confirmarlo (#${resp.id}).`;
+       succBox.innerHTML = `Tu turno está guardado temporalmente.<br><b style="font-size:16px;">Tenés <span id="timerDisplay">05:00</span> para pagar la seña</b> y confirmarlo (#${resp.id}).`;
        
        // Truquito: Convertir cartón verde de exito en advertencia amarilla visual
        succBox.className = "alert"; 
@@ -338,6 +338,35 @@ async function handleBook() {
           },
           theme: { elementsColor: '#009ee3' }
        });
+       
+       // FASE 7.1: Motor regresivo estricto para el cliente
+       if (resp.lockExpiresAt) {
+          const expTime = new Date(resp.lockExpiresAt).getTime();
+          const timerId = setInterval(() => {
+             const diff = expTime - Date.now();
+             if (diff <= 0) {
+                clearInterval(timerId);
+                succBox.innerHTML = `<b>Se venció el tiempo de pago.</b> El turno fue liberado.`;
+                succBox.style.color = "#ef4444";
+                succBox.style.borderColor = "#f87171";
+                succBox.style.backgroundColor = "#fef2f2";
+                
+                // Ocultar e invalidar el checkout de MP
+                const mpBtn = $("mpCheckoutBtn");
+                if (mpBtn) {
+                   mpBtn.style.display = "none";
+                   mpBtn.innerHTML = "";
+                }
+             } else {
+                const totalSecs = Math.floor(diff / 1000);
+                const m = Math.floor(totalSecs / 60);
+                const s = totalSecs % 60;
+                const dEl = document.getElementById("timerDisplay");
+                if (dEl) dEl.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+             }
+          }, 1000);
+       }
+       
        
     } else {
        // CAMINO B (o error MP): Confirmación clásica en el local (Turno en pending real)
