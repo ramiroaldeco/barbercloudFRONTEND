@@ -307,3 +307,25 @@ a{ color:inherit; text-decoration:none; }
   gap:10px;
 }
 .row{ display:flex; }
+
+/* FASE 8: Chips de Rango Temporal */
+.chip{
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.chip:hover{
+  background: rgba(255,255,255,.05);
+  color: var(--text);
+}
+.chip.active{
+  background: var(--blue);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(47,123,255,.4);
+}

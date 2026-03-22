@@ -81,6 +81,7 @@
         <a href="#/clientes" class="nav-item" data-route="clientes">Clientes</a>
         <a href="#/miembros" class="nav-item" data-route="miembros">Miembros</a>
         <a href="#/servicios" class="nav-item" data-route="servicios">Servicios</a>
+        <a href="#/estadisticas" class="nav-item" data-route="estadisticas">Estadísticas</a>
         <a href="#/config" class="nav-item" data-route="config">Configuración</a>
       </nav>
 
@@ -156,6 +157,99 @@
 
               <!-- Calendario semanal -->
               <div id="calendarView" style="display:none;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ESTADÍSTICAS (FASE 8) -->
+        <div class="view" id="view-estadisticas" style="display:none;">
+          
+          <div class="stats-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 24px;">
+            <div>
+              <h2 style="margin:0; font-size:24px;">Rendimiento del Negocio</h2>
+              <p class="muted" style="margin:4px 0 0;">Ingresos netos limpios (sin Platform Fee) y métricas clave.</p>
+            </div>
+            <div class="stats-filters" style="display:flex; gap:8px; background:var(--bg-card); padding:4px; border-radius:8px; border:1px solid var(--border);">
+              <button class="chip active" data-range="7">7 Días</button>
+              <button class="chip" data-range="30">30 Días</button>
+              <button class="chip" data-range="365">1 Año</button>
+            </div>
+          </div>
+
+          <!-- Top KPIs (Resumen General) -->
+          <div class="kpi-grid" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:16px; margin-bottom:24px;">
+            <div class="card" style="padding:20px; text-align:center; border-top: 3px solid var(--primary);">
+              <div class="muted" style="font-size:13px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px;">Ingreso Neto</div>
+              <div id="statNetIncome" style="font-size:32px; font-weight:800; color:var(--text); letter-spacing:-1px;">$-</div>
+            </div>
+            <div class="card" style="padding:20px; text-align:center;">
+              <div class="muted" style="font-size:13px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px;">Turnos Completados</div>
+              <div id="statConfirmed" style="font-size:32px; font-weight:800; color:var(--text); letter-spacing:-1px;">0</div>
+            </div>
+            <div class="card" style="padding:20px; text-align:center;">
+              <div class="muted" style="font-size:13px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px;">Ticket Promedio</div>
+              <div id="statAvgTicket" style="font-size:32px; font-weight:800; color:var(--text); letter-spacing:-1px;">$-</div>
+            </div>
+            <div class="card" style="padding:20px; text-align:center; border-top: 3px solid #ef4444;">
+              <div class="muted" style="font-size:13px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px;">Cancelaciones</div>
+              <div id="statCanceled" style="font-size:32px; font-weight:800; color:#ef4444; letter-spacing:-1px;">0</div>
+            </div>
+          </div>
+
+          <!-- Gráfico Principal: Evolución -->
+          <div class="card" style="margin-bottom:24px;">
+            <div class="card-head" style="border-bottom:1px solid var(--border); padding-bottom:16px; margin-bottom:16px;">
+              <h3 style="margin:0;">Evolución de Ingresos</h3>
+            </div>
+            <div class="card-body" style="position:relative; height:300px; width:100%;">
+              <canvas id="evolutionChart"></canvas>
+            </div>
+          </div>
+
+          <!-- Gráficos Secundarios: Distribución Horizontal -->
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:24px; margin-bottom:24px;">
+            <div class="card">
+              <div class="card-head" style="border-bottom:1px solid var(--border); padding-bottom:16px; margin-bottom:16px;">
+                <h3 style="margin:0;">Rendimiento por Barbero</h3>
+              </div>
+              <div class="card-body" style="position:relative; height:250px; width:100%;">
+                <canvas id="barberChart"></canvas>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-head" style="border-bottom:1px solid var(--border); padding-bottom:16px; margin-bottom:16px;">
+                <h3 style="margin:0;">Ingresos por Servicio</h3>
+              </div>
+              <div class="card-body" style="position:relative; height:250px; width:100%;">
+                <canvas id="serviceChart"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- Rankings Finales -->
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:24px;">
+            <div class="card">
+              <div class="card-head">
+                <h3 style="margin:0;">🔥 Top Clientes Frecuentes</h3>
+              </div>
+              <div class="card-body">
+                <ul id="topClientsList" style="list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:12px;">
+                  <!-- Rellenado por JS -->
+                </ul>
+              </div>
+            </div>
+            <div class="card" style="background: linear-gradient(145deg, var(--bg-card), rgba(59, 130, 246, 0.05)); border-color: rgba(59, 130, 246, 0.2);">
+              <div class="card-head">
+                <h3 style="margin:0; color:var(--primary);">⭐ BarberCloud Insights</h3>
+              </div>
+              <div class="card-body">
+                <p style="margin-bottom:16px; line-height:1.6;">Resumen de inteligencia de tu negocio en el período seleccionado:</p>
+                <ul style="padding-left:20px; line-height:1.8; color:var(--text);">
+                  <li>Barbero n° 1 en facturación: <strong id="statTopBarber" style="color:#fff;">-</strong></li>
+                  <li>Cliente supremo: <strong id="statFreqClient" style="color:#fff;">-</strong></li>
+                  <li id="statSuccessRatioContainer">Ratio de éxito operativo: <strong id="statRatio" style="color:var(--primary);">-</strong></li>
+                </ul>
+              </div>
             </div>
           </div>
         </div>
@@ -318,6 +412,8 @@
 
   <!-- Libreria QRCode.js CDN (muy ligera, sin dependencias) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <!-- Chart.js FASE 8 -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="./config.js"></script>
   <script src="./admin_v2.js"></script>
 </body>
