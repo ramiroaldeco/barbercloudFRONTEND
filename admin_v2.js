@@ -1184,7 +1184,9 @@ async function renderCalendar() {
   // Group by date+hour
   const grid = {};
   for (const a of items) {
-    if (a.status === "canceled") continue;
+    // FASE 7.1: Excluir todos los tipos de cancelados del calendario visual
+    if (a.status === "canceled" || a.status === "CANCELLED_MANUAL" || a.status === "CANCELLED_EXPIRED") continue;
+    
     const hour = (a.time || "00:00").slice(0, 2);
     const key = `${a.date}_${hour}`;
     if (!grid[key]) grid[key] = [];
