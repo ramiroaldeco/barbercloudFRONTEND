@@ -35,6 +35,35 @@ function safeShow(id, show) {
   if (el) el.style.display = show ? "block" : "none";
 }
 
+// ---- UI UX Helpers (Fase 9) ----
+function renderTableSkeletons(tbody, cols, rows = 5) {
+  if (!tbody) return;
+  const trs = Array(rows).fill(0).map(() => 
+    `<tr>${Array(cols).fill('<td><div class="skeleton skeleton-row"></div></td>').join('')}</tr>`
+  );
+  tbody.innerHTML = trs.join("");
+}
+
+function renderGridSkeletons(container, count = 3) {
+  if (!container) return;
+  const cards = Array(count).fill(0).map(() => 
+    `<div class="card"><div class="card-body"><div class="skeleton skeleton-card"></div></div></div>`
+  );
+  container.innerHTML = cards.join("");
+}
+
+function setBtnLoading(btnId, state) {
+  const btn = $(btnId);
+  if (!btn) return;
+  if (state) {
+    btn.classList.add("is-loading");
+    btn.disabled = true;
+  } else {
+    btn.classList.remove("is-loading");
+    btn.disabled = false;
+  }
+}
+
 // ---- routing ----
 const views = {
   agenda: $("view-agenda"),
@@ -378,6 +407,7 @@ btnLoginClose?.addEventListener("click", closeLogin);
 
 btnLogin?.addEventListener("click", async () => {
   try {
+    setBtnLoading("btnLogin", true);
     if (loginError) loginError.style.display = "none";
     const email = (loginEmail?.value || "").trim();
     const password = loginPassword?.value || "";
@@ -395,9 +425,11 @@ btnLogin?.addEventListener("click", async () => {
 
     setToken(data.token);
     closeLogin();
+    setBtnLoading("btnLogin", false);
     await loadShopHeader();
     showView(getRoute());
   } catch (e) {
+    setBtnLoading("btnLogin", false);
     if (loginError) {
       loginError.textContent = "Error: " + e.message;
       loginError.style.display = "block";
@@ -501,6 +533,9 @@ async function loadAppointments(isSilentPoll = false) {
   const to = safeVal("toDate", "");
 
   if (!isSilentPoll && empty) empty.style.display = "none";
+  if (!isSilentPoll && tbody && !tbody.children.length) {
+    renderTableSkeletons(tbody, 8, 4);
+  }
 
   try {
     const params = new URLSearchParams();
@@ -867,14 +902,17 @@ document.addEventListener("click", (e) => {
 async function loadServices() {
   const grid = $("servicesGrid");
   if (!grid) return;
-  grid.innerHTML = "";
+  
+  if (!grid.children.length) renderGridSkeletons(grid, 3);
 
   try {
     const data = await apiGet("/services/mine");
     const items = data.items || data || [];
 
+    grid.innerHTML = "";
+
     if (!items.length) {
-      grid.innerHTML = `<div class="muted">Todavía no tenés servicios. Creá el primero.</div>`;
+      grid.innerHTML = `<div class="empty">Todavía no tenés servicios. Creá el primero.</div>`;
       return;
     }
 
@@ -1184,6 +1222,7 @@ $("cfgLogoFile")?.addEventListener("change", async (e) => {
 
 $("btnSaveConfig")?.addEventListener("click", async () => {
   try {
+    setBtnLoading("btnSaveConfig", true);
     const name = safeVal("cfgName", "").trim();
     const city = safeVal("cfgCity", "").trim();
     const address = safeVal("cfgAddress", "").trim();
@@ -1220,6 +1259,8 @@ $("btnSaveConfig")?.addEventListener("click", async () => {
     alert("Guardado ✅");
   } catch (e) {
     alert("Error: " + e.message);
+  } finally {
+    setBtnLoading("btnSaveConfig", false);
   }
 });
 
@@ -1243,8 +1284,10 @@ async function loadClients() {
   const empty = $("clientsEmpty");
   const q = (safeVal("qClients", "") || "").trim();
 
-  if (tbody) tbody.innerHTML = "";
   if (empty) empty.style.display = "none";
+  if (tbody && !tbody.children.length) {
+    renderTableSkeletons(tbody, 6, 5);
+  }
 
   try {
     const params = new URLSearchParams();
@@ -1254,12 +1297,15 @@ async function loadClients() {
     const items = data.items || [];
 
     if (!items.length) {
+      if (tbody) tbody.innerHTML = "";
       if (empty) {
         empty.style.display = "block";
         empty.textContent = q ? "No se encontraron clientes." : "No hay clientes todavía.";
       }
       return;
     }
+    
+    if (tbody) tbody.innerHTML = "";
 
     for (const c of items) {
       const tr = document.createElement("tr");
@@ -1517,7 +1563,7 @@ async function loadMembers() {
   const grid = $("membersGrid");
   if (!grid) return;
   
-  grid.innerHTML = `<div class="muted">Cargando equipo...</div>`;
+  if (!grid.children.length) renderGridSkeletons(grid, 3);
   try {
     const res = await apiGet("/members");
     const members = res.members || [];
@@ -1526,7 +1572,7 @@ async function loadMembers() {
     const activeMembers = members.filter(m => m.isActive);
     
     if (!activeMembers.length) {
-      grid.innerHTML = `<div class="muted">Todavía no agregaste a nadie a tu equipo.</div>`;
+      grid.innerHTML = `<div class="empty">Todavía no agregaste a nadie a tu equipo.</div>`;
       return;
     }
     
