@@ -315,7 +315,7 @@ async function handleBook() {
     $("btnBook").style.display = "none";
     $("btnBackTo3").style.display = "none";
     
-    if (resp.status === "payment_pending" && resp.preferenceId && resp.mpPublicKey) {
+    if (resp.status === "PENDING_PAYMENT" && resp.preferenceId && resp.mpPublicKey) {
        // CAMINO A: El sistema exige seña online
        succBox.textContent = `Tu turno está guardado temporalmente. Tenés 10 minutos para pagar la seña y confirmarlo (#${resp.id}).`;
        

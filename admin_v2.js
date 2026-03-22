@@ -267,9 +267,10 @@ async function loadShopHeader() {
 
 // ---- Agenda ----
 function statusBadge(status) {
-  if (status === "confirmed") return `<span class="badge good">● Confirmado</span>`;
-  if (status === "canceled") return `<span class="badge bad">● Cancelado</span>`;
-  return `<span class="badge warn">● Pendiente</span>`;
+  if (status === "CONFIRMED" || status === "confirmed") return `<span class="badge good">● Confirmado</span>`;
+  if (status === "CANCELLED_MANUAL" || status === "canceled" || status === "CANCELLED_EXPIRED") return `<span class="badge bad">● Cancelado</span>`;
+  if (status === "PENDING_PAYMENT" || status === "payment_pending") return `<span class="badge warn">● Seña Bloqueada...</span>`;
+  return `<span class="badge warn">● Pendiente Local</span>`;
 }
 
 async function loadAppointments() {
@@ -339,8 +340,8 @@ document.querySelector("#appointmentsTable")?.addEventListener("click", async (e
   if (!id || !act) return;
 
   try {
-    if (act === "confirm") await apiPut(`/appointments/${id}/status`, { status: "confirmed" });
-    if (act === "cancel") await apiPut(`/appointments/${id}/status`, { status: "canceled" });
+    if (act === "confirm") await apiPut(`/appointments/${id}/status`, { status: "CONFIRMED" });
+    if (act === "cancel") await apiPut(`/appointments/${id}/status`, { status: "CANCELLED_MANUAL" });
     await loadAppointments();
   } catch (err) {
     alert("Error: " + err.message);

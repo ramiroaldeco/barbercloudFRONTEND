@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Reserva Exitosa | BarberCloud</title>
+  <link rel="stylesheet" href="./landing.css" />
+  <style>
+    body {
+      background-color: var(--bg-body);
+      color: var(--text-main);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, sans-serif;
+      padding: 20px;
+    }
+    .ticket-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 30px;
+      width: 100%;
+      max-width: 400px;
+      text-align: center;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    }
+    .icon-success {
+      width: 64px;
+      height: 64px;
+      background: rgba(34, 197, 94, 0.1);
+      color: #22c55e;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      margin: 0 auto 20px;
+    }
+    .title {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .subtitle {
+      color: var(--text-muted);
+      font-size: 14px;
+      margin-bottom: 24px;
+    }
+    .detail-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border-color);
+      font-size: 14px;
+    }
+    .detail-row:last-child {
+      border-bottom: none;
+    }
+    .label {
+      color: var(--text-muted);
+    }
+    .val {
+      font-weight: 600;
+    }
+    .btn-primary {
+      display: block;
+      width: 100%;
+      padding: 12px;
+      margin-top: 24px;
+      background: var(--cyan);
+      color: #000;
+      text-decoration: none;
+      font-weight: 600;
+      border-radius: 8px;
+      transition: opacity 0.2s;
+    }
+    .btn-primary:hover {
+      opacity: 0.9;
+    }
+    .branding {
+      margin-top: 24px;
+      font-size: 12px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="ticket-card" id="loadingBox">
+    <div class="subtitle" style="margin:0;">Generando tu comprobante digital...</div>
+  </div>
+
+  <div class="ticket-card" id="ticketBox" style="display:none;">
+    <div class="icon-success">✓</div>
+    <div class="title">¡Reserva Confirmada!</div>
+    <div class="subtitle" id="shopName">Tu Barbería</div>
+
+    <div class="detail-row">
+      <span class="label">Servicio</span>
+      <span class="val" id="tService">...</span>
+    </div>
+    <div class="detail-row">
+      <span class="label">Barbero</span>
+      <span class="val" id="tBarber">...</span>
+    </div>
+    <div class="detail-row">
+      <span class="label">Fecha y Hora</span>
+      <span class="val" id="tDateTime">...</span>
+    </div>
+    <div class="detail-row">
+      <span class="label">Seña pagada</span>
+      <span class="val" style="color: #22c55e;">$<span id="tDeposit">...</span></span>
+    </div>
+    <div class="detail-row">
+      <span class="label">Restante en local</span>
+      <span class="val">$<span id="tRemaining">...</span></span>
+    </div>
+
+    <a href="#" id="btnBack" class="btn-primary">Volver al Inicio</a>
+
+    <div class="branding">
+      ⚡ Powered by <strong>BarberCloud</strong>
+    </div>
+  </div>
+
+  <script src="./config.js"></script>
+  <script>
+    const API = typeof API_BASE !== "undefined" ? API_BASE : "https://barbercloud.onrender.com/api";
+    
+    async function init() {
+      const params = new URLSearchParams(window.location.search);
+      const prefId = params.get("preference_id");
+      const errBox = document.getElementById("loadingBox");
+      const tBox = document.getElementById("ticketBox");
+
+      if (!prefId) {
+        errBox.innerHTML = "<div class='title' style='color:#ef4444'>Error</div><div class='subtitle'>No se encontró el comprobante de la reserva.</div>";
+        document.getElementById("btnBack").href = "index.html";
+        return;
+      }
+
+      try {
+        const res = await fetch(`${API}/public/appointment-by-preference/${prefId}`);
+        const data = await res.json();
+        
+        if (!res.ok) throw new Error(data.error || "No se pudo recuperar la reserva");
+
+        document.getElementById("shopName").textContent = data.barbershopName || "Tu Barbería";
+        document.getElementById("tService").textContent = data.serviceName || "-";
+        document.getElementById("tBarber").textContent = data.barberName || "-";
+        
+        // formatear fecha
+        const [y, m, d] = data.date.split("-");
+        const fDate = `${d[0]}${d[1]}/${m}/${y}`;
+        document.getElementById("tDateTime").textContent = `${fDate} a las ${data.time}hs`;
+        
+        document.getElementById("tDeposit").textContent = data.depositAmount || 0;
+        
+        const remaining = (data.totalAmount || 0) - (data.depositAmount || 0);
+        document.getElementById("tRemaining").textContent = remaining > 0 ? remaining : "0 (Pagado total)";
+
+        document.getElementById("btnBack").href = `book.html?slug=${data.slug}`;
+
+        errBox.style.display = "none";
+        tBox.style.display = "block";
+
+      } catch (err) {
+        errBox.innerHTML = `<div class='title' style='color:#ef4444'>Error</div><div class='subtitle'>${err.message}</div>`;
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>
