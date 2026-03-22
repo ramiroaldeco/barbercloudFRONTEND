@@ -289,9 +289,17 @@ setInterval(() => {
     const diffMs = exp.getTime() - now.getTime();
 
     if (diffMs <= 0) {
-      b.textContent = "Expirando...";
       b.removeAttribute("data-expires");
-      needsReload = true;
+      b.className = "badge bad";
+      b.style = "";
+      b.textContent = "● Cancelado";
+      
+      const tr = b.closest("tr");
+      if (tr) {
+        tr.dataset.status = "CANCELLED_EXPIRED";
+        const btnBox = tr.querySelector(".right");
+        if (btnBox) btnBox.innerHTML = ""; // Remover acciones
+      }
     } else {
       const totalSecs = Math.floor(diffMs / 1000);
       const mins = Math.floor(totalSecs / 60);
@@ -299,24 +307,25 @@ setInterval(() => {
       b.textContent = `Esperando seña 🕒 ${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
     }
   });
-
-  if (needsReload && typeof loadAppointments === "function") {
-     loadAppointments();
-  }
 }, 1000);
 
-async function loadAppointments() {
+// Polling suave y silencioso cada 15s para detectar confirmaciones online
+setInterval(() => {
+  if (document.querySelector("#appointmentsTable:not([style*='display: none'])")) {
+    if (typeof loadAppointments === "function") loadAppointments(true);
+  }
+}, 15000);
+
+async function loadAppointments(isSilentPoll = false) {
   const tbody = document.querySelector("#appointmentsTable tbody");
   const empty = $("appointmentsEmpty");
 
-  // ✅ NO explota si falta algún input en tu HTML
   const q = (safeVal("qAppointments", "") || "").trim();
   const status = safeVal("statusFilter", "");
   const from = safeVal("fromDate", "");
   const to = safeVal("toDate", "");
 
-  if (tbody) tbody.innerHTML = "";
-  if (empty) empty.style.display = "none";
+  if (!isSilentPoll && empty) empty.style.display = "none";
 
   try {
     const params = new URLSearchParams();
@@ -329,6 +338,7 @@ async function loadAppointments() {
     const items = data.items || data || [];
 
     if (!items.length) {
+      if (tbody) tbody.innerHTML = "";
       if (empty) {
         empty.style.display = "block";
         empty.textContent = "No tenés turnos para este rango.";
@@ -336,9 +346,34 @@ async function loadAppointments() {
       return;
     }
 
-    for (const a of items) {
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
+    if (empty) empty.style.display = "none";
+
+    // FASE 7.1: DOM Diffing Estabilizado
+    const existingRows = Array.from(tbody.querySelectorAll("tr[data-appid]"));
+    const newIds = items.map(a => String(a.id));
+
+    // 1. Quitar los que ya no vienen (fueron limpiados por backend)
+    existingRows.forEach(tr => {
+      if (!newIds.includes(tr.dataset.appid)) {
+        tr.remove();
+      }
+    });
+
+    // 2. Insertar o Mutar los que vengan
+    items.forEach(a => {
+      let tr = tbody.querySelector(`tr[data-appid="${a.id}"]`);
+      
+      let actionsHtml = "";
+      if (a.status === "PENDING_PAYMENT" || a.status === "pending") {
+         actionsHtml = `
+           <button class="btn" data-act="confirm" data-id="${a.id}">Confirmar</button>
+           <button class="btn" data-act="cancel" data-id="${a.id}">Cancelar</button>
+         `;
+      } else if (a.status === "CONFIRMED" || a.status === "confirmed") {
+         actionsHtml = `<button class="btn" data-act="cancel" data-id="${a.id}">Cancelar</button>`;
+      }
+
+      const htmlContent = `
         <td>${escapeHtml(a.date || "")}</td>
         <td>${escapeHtml(a.time || "")}</td>
         <td>${escapeHtml(a.barber?.name || "\u2014")}</td>
@@ -346,15 +381,25 @@ async function loadAppointments() {
         <td>${escapeHtml(a.customerName || "")}</td>
         <td>${escapeHtml(a.customerPhone || "")}</td>
         <td>${statusBadge(a.status, a.lockExpiresAt)}</td>
-        <td class="right">
-          <button class="btn" data-act="confirm" data-id="${a.id}">Confirmar</button>
-          <button class="btn" data-act="cancel" data-id="${a.id}">Cancelar</button>
-        </td>
+        <td class="right">${actionsHtml}</td>
       `;
-      tbody?.appendChild(tr);
-    }
+
+      if (!tr) {
+        tr = document.createElement("tr");
+        tr.dataset.appid = a.id;
+        tr.innerHTML = htmlContent;
+        tbody.appendChild(tr);
+      } else {
+        // Solo actualizar si la cadena HTML interna muta (p. ej estado o acciones cambiaron)
+        if (tr.dataset.rawHtml !== htmlContent) {
+            tr.innerHTML = htmlContent;
+        }
+      }
+      tr.dataset.rawHtml = htmlContent;
+    });
+
   } catch (e) {
-    if (empty) {
+    if (empty && !isSilentPoll) {
       empty.style.display = "block";
       empty.textContent = "Error cargando turnos: " + e.message;
     }
