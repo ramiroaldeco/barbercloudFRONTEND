@@ -21,9 +21,11 @@ function setMsg(text, type = "info") {
 function setLoading(isLoading) {
   if (!btnCreate) return;
   btnCreate.disabled = !!isLoading;
-  btnCreate.style.opacity = isLoading ? "0.8" : "1";
-  btnCreate.style.cursor = isLoading ? "not-allowed" : "pointer";
-  btnCreate.textContent = isLoading ? "Creando..." : "Crear cuenta";
+  if(isLoading) {
+    btnCreate.classList.add("is-loading");
+  } else {
+    btnCreate.classList.remove("is-loading");
+  }
 }
 
 async function safeReadError(res) {
