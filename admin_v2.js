@@ -555,25 +555,37 @@ async function loadAppointments(isSilentPoll = false) {
     const data = await apiGet(`/appointments?${params.toString()}`);
     let items = data.items || data || [];
 
-    // FASE 11: Mover turnos pasados al Historial
+    // FASE 11 Fix: Separación Histórica Inteligente
     const currentTab = document.querySelector("#view-agenda .tab.active")?.dataset.tab || "list";
     const now = new Date();
     
     if (currentTab === "list" || currentTab === "history") {
       items = items.filter(a => {
-        if (!a.date || !a.time) return true;
+        if (!a.date || !a.time) return false;
+        
         const [yyyy, mm, dd] = a.date.split("-");
         const [hh, min] = a.time.split(":");
         const apptDate = new Date(yyyy, mm - 1, dd, hh, min);
         
         const isPast = apptDate < now;
-        return currentTab === "history" ? isPast : !isPast;
+        const isCanceled = (a.status || "").toUpperCase().includes("CANCEL");
+        
+        if (currentTab === "history") {
+           // Sector Historial: Solo pasados Y confirmados (liquidaciones)
+           const isConfirmed = (a.status === "CONFIRMED" || a.status === "confirmed");
+           return isPast && isConfirmed && !isCanceled;
+        } else {
+           // Lista Activa: Solo futuros/presentes Y NO cancelados
+           return !isPast && !isCanceled;
+        }
       });
       
-      // Ordenamiento táctico
+      // Ordenamiento
       if (currentTab === "history") {
+         // Historial: Más reciente arriba
          items.sort((x, y) => new Date(`${y.date}T${y.time}`) - new Date(`${x.date}T${x.time}`));
       } else {
+         // Activo: El primero que viene, arriba
          items.sort((x, y) => new Date(`${x.date}T${x.time}`) - new Date(`${y.date}T${y.time}`));
       }
     }
