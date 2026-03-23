@@ -557,6 +557,9 @@ async function loadAppointments(isSilentPoll = false) {
     }
 
     if (empty) empty.style.display = "none";
+    
+    // Purga de Skeletons antes del DOM Diffing (Fase 9 Bugfix)
+    tbody.querySelectorAll("tr:not([data-appid])").forEach(tr => tr.remove());
 
     // FASE 7.1: DOM Diffing Estabilizado
     const existingRows = Array.from(tbody.querySelectorAll("tr[data-appid]"));

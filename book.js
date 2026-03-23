@@ -50,7 +50,6 @@ function todayISO() {
 }
 
 async function fetchInitialData() {
-  showLoader("Cargando información...");
   try {
     const shopRes = await apiGet(`/public/${slug}/barbershop`);
     state.barbershop = shopRes.item;
@@ -73,8 +72,6 @@ async function fetchInitialData() {
   } catch (err) {
     safeText("shopTitle", "Error de carga");
     safeText("shopMeta", "No pudimos encontrar esta barbería: " + err.message);
-  } finally {
-    hideLoader();
   }
 }
 
@@ -193,10 +190,7 @@ async function renderSlotsAvailable() {
   if (!serviceId || !barberId || !date) return;
 
   hint.textContent = "Buscando horarios...";
-  box.innerHTML = `
-    <div class="skeleton sk-text"></div>
-    <div class="skeleton sk-text"></div>
-  `;
+  box.innerHTML = Array(6).fill('<div class="skeleton" style="height:46px; border-radius:8px;"></div>').join('');
 
   try {
     const data = await apiGet(`/public/${slug}/availability?barberId=${barberId}&serviceId=${serviceId}&date=${date}`);
