@@ -297,6 +297,14 @@ document.querySelectorAll(".chip[data-range]").forEach(btn => {
 
 document.addEventListener("DOMContentLoaded", () => {
   showView(getRoute());
+
+  // FASE 11: Tabs de Agenda
+  const agendaTabs = document.querySelectorAll("#view-agenda .tab");
+  agendaTabs.forEach(t => t.addEventListener("click", () => {
+    agendaTabs.forEach(x => x.classList.remove("active"));
+    t.classList.add("active");
+    if (typeof loadAppointments === "function") loadAppointments();
+  }));
 });
 
 // ---- API helpers ----
@@ -545,7 +553,30 @@ async function loadAppointments(isSilentPoll = false) {
     if (q) params.set("q", q);
 
     const data = await apiGet(`/appointments?${params.toString()}`);
-    const items = data.items || data || [];
+    let items = data.items || data || [];
+
+    // FASE 11: Mover turnos pasados al Historial
+    const currentTab = document.querySelector("#view-agenda .tab.active")?.dataset.tab || "list";
+    const now = new Date();
+    
+    if (currentTab === "list" || currentTab === "history") {
+      items = items.filter(a => {
+        if (!a.date || !a.time) return true;
+        const [yyyy, mm, dd] = a.date.split("-");
+        const [hh, min] = a.time.split(":");
+        const apptDate = new Date(yyyy, mm - 1, dd, hh, min);
+        
+        const isPast = apptDate < now;
+        return currentTab === "history" ? isPast : !isPast;
+      });
+      
+      // Ordenamiento táctico
+      if (currentTab === "history") {
+         items.sort((x, y) => new Date(`${y.date}T${y.time}`) - new Date(`${x.date}T${x.time}`));
+      } else {
+         items.sort((x, y) => new Date(`${x.date}T${x.time}`) - new Date(`${y.date}T${y.time}`));
+      }
+    }
 
     if (!items.length) {
       if (tbody) tbody.innerHTML = "";

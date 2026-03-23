@@ -85,8 +85,9 @@
         <a href="#/config" class="nav-item" data-route="config">Configuración</a>
       </nav>
 
-      <div class="sidebar-footer">
-        <button class="ghost-btn" id="btnLogout">Salir</button>
+      <div class="sidebar-footer" style="display:flex; flex-direction:column; align-items:center; gap:16px;">
+        <button class="ghost-btn" id="btnLogout" style="width:100%;">Salir</button>
+        <img src="./LogoBarberCloud.png" alt="BarberCloud" style="height: 24px; opacity: 0.35; filter: grayscale(100%);">
       </div>
     </aside>
 
@@ -110,7 +111,8 @@
           <div class="card">
             <div class="card-head">
               <div class="tabs">
-                <button class="tab active" data-tab="list">Lista</button>
+                <button class="tab active" data-tab="list">Lista Activa</button>
+                <button class="tab" data-tab="history">Historial</button>
                 <button class="tab" data-tab="calendar">Calendario</button>
               </div>
 
@@ -167,7 +169,7 @@
           <div class="stats-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 24px;">
             <div>
               <h2 style="margin:0; font-size:24px;">Rendimiento del Negocio</h2>
-              <p class="muted" style="margin:4px 0 0;">Ingresos netos limpios (sin Platform Fee) y métricas clave.</p>
+              <p class="muted" style="margin:4px 0 0;">Ingresos netos limpios y métricas clave.</p>
             </div>
             <div class="stats-filters" style="display:flex; gap:8px; background:var(--bg-card); padding:4px; border-radius:8px; border:1px solid var(--border);">
               <button class="chip active" data-range="7">7 Días</button>
