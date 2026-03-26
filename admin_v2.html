@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>BarberCloud Admin v2</title>
 
-  <link rel="stylesheet" href="./admin_v2.css" />
+  <link rel="stylesheet" href="./admin_v2.css?v=14responsive" />
 </head>
 <body>
   <!-- LOGIN OVERLAY -->
@@ -55,6 +55,9 @@
     </div>
   </div>
 
+  <!-- SIDEBAR OVERLAY (mobile) -->
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
   <div class="app">
     <!-- SIDEBAR -->
     <aside class="sidebar">
@@ -94,6 +97,8 @@
     <!-- MAIN -->
     <main class="main">
       <header class="topbar">
+        <!-- Hamburger: only visible on mobile -->
+        <button class="hamburger-btn" id="btnHamburger" title="Menú" aria-label="Abrir menú">☰</button>
         <div class="top-left">
           <h1 id="pageTitle">Agenda</h1>
           <p class="muted" id="pageSubtitle">Gestioná tus turnos</p>

@@ -305,7 +305,46 @@ document.addEventListener("DOMContentLoaded", () => {
     t.classList.add("active");
     if (typeof loadAppointments === "function") loadAppointments();
   }));
+
+  // ---- MOBILE SIDEBAR TOGGLE ----
+  const sidebar        = document.querySelector(".sidebar");
+  const sidebarOverlay = $("sidebarOverlay");
+  const btnHamburger   = $("btnHamburger");
+
+  function openSidebar() {
+    if (!sidebar) return;
+    sidebar.classList.add("sidebar-open");
+    if (sidebarOverlay) {
+      sidebarOverlay.classList.add("visible");
+    }
+    document.body.style.overflow = "hidden"; // prevent background scroll
+  }
+
+  function closeSidebar() {
+    if (!sidebar) return;
+    sidebar.classList.remove("sidebar-open");
+    if (sidebarOverlay) {
+      sidebarOverlay.classList.remove("visible");
+    }
+    document.body.style.overflow = "";
+  }
+
+  btnHamburger?.addEventListener("click", openSidebar);
+  sidebarOverlay?.addEventListener("click", closeSidebar);
+
+  // Auto-close sidebar when a nav item is tapped on mobile
+  document.querySelectorAll(".nav-item").forEach(item => {
+    item.addEventListener("click", () => {
+      if (window.innerWidth <= 768) closeSidebar();
+    });
+  });
+
+  // Close sidebar on resize back to desktop
+  window.addEventListener("resize", () => {
+    if (window.innerWidth > 768) closeSidebar();
+  });
 });
+
 
 // ---- API helpers ----
 function authHeaders() {

@@ -1,4 +1,4 @@
-/* admin_v2.css */
+/* admin_v2.css – desktop + responsive */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
 :root{
@@ -513,4 +513,277 @@ select.input {
   top: 50%;
   margin-left: -9px;
   margin-top: -9px;
+}
+
+/* ============================================================
+   RESPONSIVE — MOBILE FIRST ADDITIONS
+   Desktop (> 768px) is completely unaffected.
+   All rules below only fire on screens ≤ 768px.
+   ============================================================ */
+
+/* Hamburger button — hidden on desktop */
+.hamburger-btn {
+  display: none;
+  width: 42px; height: 42px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.02);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 20px;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition);
+  flex-shrink: 0;
+}
+.hamburger-btn:hover {
+  border-color: rgba(59,130,246,0.3);
+  background: rgba(59,130,246,0.08);
+}
+
+/* Sidebar overlay — hidden by default */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 90;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.sidebar-overlay.visible {
+  opacity: 1;
+}
+
+/* btnAddAppointment alias for sidebar quick-add */
+.btnAddAppointment {
+  width: 100%;
+  margin: 10px 0 16px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(59,130,246,0.4);
+  background: linear-gradient(180deg, var(--primary), var(--primary-hover));
+  color: #fff;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  transition: var(--transition);
+  box-shadow: 0 4px 12px rgba(59,130,246,0.25);
+}
+.btnAddAppointment:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(59,130,246,0.4);
+}
+
+/* ---- Sidebar: always-visible on desktop ---- */
+.sidebar {
+  position: sticky; /* keeps it in grid flow on desktop */
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+@media (max-width: 768px) {
+
+  /* ---- Root layout: stack everything ---- */
+  .app {
+    grid-template-columns: 1fr;   /* sidebar removed from flow on mobile */
+    min-height: 100vh;
+  }
+
+  /* ---- Sidebar: off-canvas drawer ---- */
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: min(300px, 88vw);
+    height: 100vh;
+    z-index: 100;
+    transform: translateX(-100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border-right: 1px solid var(--border-h);
+    background: var(--panel);
+    padding: 20px 16px;
+    overflow-y: auto;
+  }
+  .sidebar.sidebar-open {
+    transform: translateX(0);
+  }
+
+  /* Show overlay */
+  .sidebar-overlay {
+    display: block;
+  }
+
+  /* ---- Hamburger visible on mobile ---- */
+  .hamburger-btn {
+    display: flex;
+  }
+
+  /* ---- Topbar adjustments ---- */
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    padding: 12px 16px;
+    gap: 10px;
+    flex-wrap: nowrap;
+    align-items: center;
+  }
+  .top-left {
+    flex: 1;
+    min-width: 0;
+  }
+  .top-left h1 {
+    font-size: 18px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .top-left p {
+    display: none; /* hide subtitle on mobile to save space */
+  }
+  .top-right {
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  .icon-btn {
+    width: 36px; height: 36px;
+  }
+
+  /* ---- Main padding ---- */
+  .main {
+    padding: 12px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* ---- Card head: wrap properly ---- */
+  .card-head {
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 12px 14px 10px;
+  }
+  .card-head > div { flex: 1 1 auto; min-width: 0; }
+  .card-head .actions { flex: 0 0 auto; }
+
+  /* ---- Tabs: wrap ---- */
+  .tabs {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .tab {
+    padding: 7px 10px;
+    font-size: 12px;
+  }
+
+  /* ---- Filters: vertical stack ---- */
+  .filters {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+  }
+  .filters .input,
+  .filters .btn {
+    width: 100%;
+  }
+
+  /* ---- Inputs: full width ---- */
+  .input { width: 100%; }
+
+  /* ---- Tables: scrollable ---- */
+  .table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .table {
+    min-width: 640px; /* allow horizontal scroll, don't shrink below this */
+  }
+
+  /* ---- Card body ---- */
+  .card-body { padding: 12px 14px; }
+
+  /* ---- Stats: reflow ---- */
+  .stats-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+  }
+  .stats-filters {
+    flex-wrap: wrap !important;
+    width: 100%;
+  }
+  .chip {
+    flex: 1;
+    text-align: center;
+    padding: 8px 6px;
+    font-size: 12px;
+  }
+  .kpi-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  /* ---- Config: QR row stacks ---- */
+  #cfgQrContainer + div {
+    width: 100%;
+  }
+  /* QR + text block */
+  .card-body [style*="display: flex"][style*="align-items: center"][style*="margin-top"] {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  /* ---- Modal: full width on mobile ---- */
+  .modal {
+    width: min(100%, 96vw);
+    margin: 0 auto;
+    border-radius: var(--radius-lg);
+  }
+  .modal-body {
+    max-height: 65vh;
+  }
+  .modal-backdrop {
+    padding: 12px;
+    align-items: flex-end; /* sheet slides from bottom on mobile */
+  }
+  .modal {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+
+  /* ---- Members grid ---- */
+  #membersGrid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* ---- Buttons in rows ---- */
+  .row {
+    flex-wrap: wrap;
+  }
+  .row .btn,
+  .row .ghost-btn {
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* ---- Buttons in config link section ---- */
+  #btnCopyPublicLink,
+  #btnOpenPublicLink {
+    flex: 1 !important;
+    min-width: 120px;
+  }
+}
+
+/* Extra small screens (phones < 400px) */
+@media (max-width: 400px) {
+  .kpi-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .top-left h1 {
+    font-size: 16px;
+  }
 }
