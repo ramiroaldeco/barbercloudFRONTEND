@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>BarberCloud Admin v2</title>
 
-  <link rel="stylesheet" href="./admin_v2.css?v=14responsive" />
+  <link rel="stylesheet" href="./admin_v2.css?v=15mobile" />
 </head>
 <body>
   <!-- LOGIN OVERLAY -->
@@ -157,6 +157,9 @@
                   <tbody></tbody>
                 </table>
               </div>
+
+              <!-- Mobile appointment cards (hidden on desktop, shown on mobile via CSS) -->
+              <div class="mobile-cards" id="appointmentsMobileCards"></div>
 
               <div class="empty" id="appointmentsEmpty" style="display:none;">
                 No tenés turnos para este rango.

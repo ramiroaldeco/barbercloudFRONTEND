@@ -516,9 +516,8 @@ select.input {
 }
 
 /* ============================================================
-   RESPONSIVE — MOBILE FIRST ADDITIONS
+   RESPONSIVE — MOBILE ADDITIONS
    Desktop (> 768px) is completely unaffected.
-   All rules below only fire on screens ≤ 768px.
    ============================================================ */
 
 /* Hamburger button — hidden on desktop */
@@ -541,7 +540,8 @@ select.input {
   background: rgba(59,130,246,0.08);
 }
 
-/* Sidebar overlay — hidden by default */
+/* Sidebar overlay — CRITICAL: pointer-events:none prevents
+   the invisible overlay from blocking touches on mobile */
 .sidebar-overlay {
   display: none;
   position: fixed;
@@ -551,13 +551,15 @@ select.input {
   -webkit-backdrop-filter: blur(4px);
   z-index: 90;
   opacity: 0;
+  pointer-events: none;              /* ← FIX: don't block clicks */
   transition: opacity 0.3s ease;
 }
 .sidebar-overlay.visible {
   opacity: 1;
+  pointer-events: auto;              /* ← only capture clicks when open */
 }
 
-/* btnAddAppointment alias for sidebar quick-add */
+/* btnAddAppointment — sidebar quick-add */
 .btnAddAppointment {
   width: 100%;
   margin: 10px 0 16px;
@@ -577,9 +579,9 @@ select.input {
   box-shadow: 0 6px 16px rgba(59,130,246,0.4);
 }
 
-/* ---- Sidebar: always-visible on desktop ---- */
+/* ---- Sidebar: desktop upgrades ---- */
 .sidebar {
-  position: sticky; /* keeps it in grid flow on desktop */
+  position: sticky;
   top: 0;
   height: 100vh;
   overflow-y: auto;
@@ -587,19 +589,21 @@ select.input {
   flex-direction: column;
 }
 
+/* ---- Mobile appointment cards (hidden on desktop) ---- */
+.mobile-cards { display: none; }
+
 @media (max-width: 768px) {
 
-  /* ---- Root layout: stack everything ---- */
+  /* ---- Root layout ---- */
   .app {
-    grid-template-columns: 1fr;   /* sidebar removed from flow on mobile */
+    grid-template-columns: 1fr;
     min-height: 100vh;
   }
 
   /* ---- Sidebar: off-canvas drawer ---- */
   .sidebar {
     position: fixed;
-    top: 0;
-    left: 0;
+    top: 0; left: 0;
     width: min(300px, 88vw);
     height: 100vh;
     z-index: 100;
@@ -614,176 +618,153 @@ select.input {
     transform: translateX(0);
   }
 
-  /* Show overlay */
-  .sidebar-overlay {
-    display: block;
-  }
+  /* Show overlay layer on mobile */
+  .sidebar-overlay { display: block; }
 
-  /* ---- Hamburger visible on mobile ---- */
-  .hamburger-btn {
-    display: flex;
-  }
+  /* ---- Hamburger visible ---- */
+  .hamburger-btn { display: flex; }
 
-  /* ---- Topbar adjustments ---- */
+  /* ---- Topbar ---- */
   .topbar {
-    position: sticky;
-    top: 0;
-    z-index: 40;
-    padding: 12px 16px;
-    gap: 10px;
-    flex-wrap: nowrap;
-    align-items: center;
+    position: sticky; top: 0; z-index: 40;
+    padding: 10px 12px; gap: 8px;
+    flex-wrap: nowrap; align-items: center;
   }
-  .top-left {
-    flex: 1;
-    min-width: 0;
-  }
+  .top-left { flex: 1; min-width: 0; }
   .top-left h1 {
-    font-size: 18px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    font-size: 17px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
-  .top-left p {
-    display: none; /* hide subtitle on mobile to save space */
-  }
-  .top-right {
-    gap: 8px;
-    flex-shrink: 0;
-  }
-  .icon-btn {
-    width: 36px; height: 36px;
-  }
+  .top-left p { display: none; }
+  .top-right { gap: 6px; flex-shrink: 0; }
+  .icon-btn { width: 34px; height: 34px; font-size: 16px; }
 
-  /* ---- Main padding ---- */
+  /* ---- Main ---- */
   .main {
-    padding: 12px;
-    width: 100%;
-    box-sizing: border-box;
+    padding: 10px;
+    width: 100%; box-sizing: border-box;
+    overflow-x: hidden;
   }
 
-  /* ---- Card head: wrap properly ---- */
+  /* ---- Content spacing ---- */
+  .content { gap: 10px; margin-top: 10px; }
+
+  /* ---- Card head ---- */
   .card-head {
-    flex-wrap: wrap;
-    gap: 10px;
-    padding: 12px 14px 10px;
-  }
-  .card-head > div { flex: 1 1 auto; min-width: 0; }
-  .card-head .actions { flex: 0 0 auto; }
-
-  /* ---- Tabs: wrap ---- */
-  .tabs {
-    flex-wrap: wrap;
-    gap: 6px;
-  }
-  .tab {
-    padding: 7px 10px;
-    font-size: 12px;
-  }
-
-  /* ---- Filters: vertical stack ---- */
-  .filters {
     flex-direction: column;
-    align-items: stretch;
-    width: 100%;
+    gap: 8px; padding: 10px 12px;
+  }
+  .card-head > div { min-width: 0; }
+  .card-head .actions { width: 100%; }
+  .card-head .actions .btn { width: 100%; }
+
+  /* ---- Tabs ---- */
+  .tabs { flex-wrap: wrap; gap: 4px; width: 100%; }
+  .tab {
+    flex: 1; text-align: center;
+    padding: 8px 6px; font-size: 12px; min-width: 0;
+  }
+
+  /* ---- Filters: full-width stack ---- */
+  .filters {
+    flex-direction: column; align-items: stretch;
+    width: 100%; gap: 6px;
   }
   .filters .input,
-  .filters .btn {
-    width: 100%;
+  .filters .btn { width: 100%; box-sizing: border-box; }
+  .input { width: 100%; box-sizing: border-box; }
+
+  /* ---- AGENDA TABLE: hidden on mobile, replaced by cards ---- */
+  .table-wrap { display: none; }
+  .mobile-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
   }
 
-  /* ---- Inputs: full width ---- */
-  .input { width: 100%; }
-
-  /* ---- Tables: scrollable ---- */
-  .table-wrap {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+  /* ---- Appointment card (mobile) ---- */
+  .appt-card {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--panel2);
+    padding: 12px;
+    transition: var(--transition);
   }
-  .table {
-    min-width: 640px; /* allow horizontal scroll, don't shrink below this */
+  .appt-card:hover { border-color: var(--border-h); }
+  .appt-card-top {
+    display: flex; justify-content: space-between;
+    align-items: flex-start; gap: 8px;
+    margin-bottom: 8px;
+  }
+  .appt-card-datetime {
+    font-weight: 700; font-size: 15px; color: var(--text);
+    display: flex; gap: 8px; align-items: center;
+  }
+  .appt-card-datetime .appt-day { color: var(--muted); font-size: 12px; font-weight: 500; }
+  .appt-card-body {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px 12px;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .appt-card-label { color: var(--muted); font-weight: 500; }
+  .appt-card-value { color: var(--text); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .appt-card-actions {
+    display: flex; gap: 6px; margin-top: 10px;
+    border-top: 1px solid var(--border); padding-top: 10px;
+  }
+  .appt-card-actions .btn {
+    flex: 1; height: 36px; font-size: 13px; padding: 0 10px;
   }
 
   /* ---- Card body ---- */
-  .card-body { padding: 12px 14px; }
+  .card-body { padding: 10px 12px; }
 
-  /* ---- Stats: reflow ---- */
+  /* ---- Stats ---- */
   .stats-header {
     flex-direction: column !important;
-    align-items: flex-start !important;
-    gap: 12px !important;
+    align-items: flex-start !important; gap: 10px !important;
   }
-  .stats-filters {
-    flex-wrap: wrap !important;
-    width: 100%;
-  }
-  .chip {
-    flex: 1;
-    text-align: center;
-    padding: 8px 6px;
-    font-size: 12px;
-  }
-  .kpi-grid {
-    grid-template-columns: repeat(2, 1fr) !important;
-  }
+  .stats-filters { flex-wrap: wrap !important; width: 100%; }
+  .chip { flex: 1; text-align: center; padding: 8px 6px; font-size: 12px; }
+  .kpi-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 10px !important; }
 
-  /* ---- Config: QR row stacks ---- */
-  #cfgQrContainer + div {
-    width: 100%;
-  }
-  /* QR + text block */
-  .card-body [style*="display: flex"][style*="align-items: center"][style*="margin-top"] {
-    flex-direction: column;
-    align-items: flex-start;
-  }
+  /* ---- Config: QR stacks ---- */
+  #cfgQrContainer + div { width: 100%; }
 
-  /* ---- Modal: full width on mobile ---- */
+  /* ---- Modal: full width, bottom sheet ---- */
+  .modal-backdrop { padding: 10px; align-items: flex-end; }
   .modal {
-    width: min(100%, 96vw);
-    margin: 0 auto;
-    border-radius: var(--radius-lg);
+    width: 100%; max-width: 100vw;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   }
-  .modal-body {
-    max-height: 65vh;
-  }
-  .modal-backdrop {
-    padding: 12px;
-    align-items: flex-end; /* sheet slides from bottom on mobile */
-  }
-  .modal {
-    border-bottom-left-radius: 0;
-    border-bottom-right-radius: 0;
-  }
+  .modal-body { max-height: 60vh; padding: 14px; }
+  .modal-head { padding: 14px 16px 10px; }
+  .modal-foot { padding: 12px 16px; }
 
   /* ---- Members grid ---- */
-  #membersGrid {
-    grid-template-columns: 1fr !important;
-  }
+  #membersGrid { grid-template-columns: 1fr !important; }
 
   /* ---- Buttons in rows ---- */
-  .row {
-    flex-wrap: wrap;
-  }
-  .row .btn,
-  .row .ghost-btn {
-    flex: 1;
-    min-width: 0;
+  .row { flex-wrap: wrap; }
+  .row .btn, .row .ghost-btn { flex: 1; min-width: 0; }
+
+  /* ---- Config link buttons ---- */
+  #btnCopyPublicLink, #btnOpenPublicLink {
+    flex: 1 !important; min-width: 100px;
+    font-size: 13px; padding: 0 8px;
   }
 
-  /* ---- Buttons in config link section ---- */
-  #btnCopyPublicLink,
-  #btnOpenPublicLink {
-    flex: 1 !important;
-    min-width: 120px;
-  }
+  /* ---- General: prevent horizontal overflow ---- */
+  .view { overflow-x: hidden; max-width: 100%; }
+  .card { max-width: 100%; overflow: hidden; }
 }
 
-/* Extra small screens (phones < 400px) */
+/* Extra small (< 400px) */
 @media (max-width: 400px) {
-  .kpi-grid {
-    grid-template-columns: 1fr !important;
-  }
-  .top-left h1 {
-    font-size: 16px;
-  }
+  .kpi-grid { grid-template-columns: 1fr !important; }
+  .top-left h1 { font-size: 15px; }
+  .appt-card-body { grid-template-columns: 1fr; }
+  .tab { font-size: 11px; padding: 6px 4px; }
 }

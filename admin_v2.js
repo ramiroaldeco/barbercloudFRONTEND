@@ -631,6 +631,8 @@ async function loadAppointments(isSilentPoll = false) {
 
     if (!items.length) {
       if (tbody) tbody.innerHTML = "";
+      const mobileCards = $("appointmentsMobileCards");
+      if (mobileCards) mobileCards.innerHTML = "";
       if (empty) {
         empty.style.display = "block";
         empty.textContent = "No tenés turnos para este rango.";
@@ -654,7 +656,7 @@ async function loadAppointments(isSilentPoll = false) {
       }
     });
 
-    // 2. Insertar o Mutar los que vengan
+    // 2. Insertar o Mutar los que vengan (DESKTOP TABLE)
     items.forEach(a => {
       let tr = tbody.querySelector(`tr[data-appid="${a.id}"]`);
       
@@ -693,6 +695,48 @@ async function loadAppointments(isSilentPoll = false) {
       tr.dataset.rawHtml = htmlContent;
     });
 
+    // 3. Render MOBILE CARDS (shown only on ≤768px via CSS)
+    const mobileCards = $("appointmentsMobileCards");
+    if (mobileCards) {
+      mobileCards.innerHTML = items.map(a => {
+        let cardActions = "";
+        if (a.status === "PENDING_PAYMENT" || a.status === "pending") {
+          cardActions = `
+            <div class="appt-card-actions">
+              <button class="btn" data-act="confirm" data-id="${a.id}">✓ Confirmar</button>
+              <button class="btn" data-act="cancel" data-id="${a.id}">✕ Cancelar</button>
+            </div>`;
+        } else if (a.status === "CONFIRMED" || a.status === "confirmed") {
+          cardActions = `
+            <div class="appt-card-actions">
+              <button class="btn" data-act="cancel" data-id="${a.id}">✕ Cancelar</button>
+            </div>`;
+        }
+
+        return `
+          <div class="appt-card" data-appid="${a.id}">
+            <div class="appt-card-top">
+              <div class="appt-card-datetime">
+                ${escapeHtml(a.time || "")}
+                <span class="appt-day">${escapeHtml(a.date || "")}</span>
+              </div>
+              ${statusBadge(a.status, a.lockExpiresAt)}
+            </div>
+            <div class="appt-card-body">
+              <span class="appt-card-label">Cliente</span>
+              <span class="appt-card-value">${escapeHtml(a.customerName || "—")}</span>
+              <span class="appt-card-label">Barbero</span>
+              <span class="appt-card-value">${escapeHtml(a.barber?.name || "—")}</span>
+              <span class="appt-card-label">Servicio</span>
+              <span class="appt-card-value">${escapeHtml(a.service?.name || "—")}</span>
+              <span class="appt-card-label">Teléfono</span>
+              <span class="appt-card-value">${escapeHtml(a.customerPhone || "—")}</span>
+            </div>
+            ${cardActions}
+          </div>`;
+      }).join("");
+    }
+
   } catch (e) {
     if (empty && !isSilentPoll) {
       empty.style.display = "block";
@@ -711,6 +755,22 @@ document.querySelector("#appointmentsTable")?.addEventListener("click", async (e
   const act = btn.dataset.act;
   if (!id || !act) return;
 
+  try {
+    if (act === "confirm") await apiPut(`/appointments/${id}/status`, { status: "CONFIRMED" });
+    if (act === "cancel") await apiPut(`/appointments/${id}/status`, { status: "CANCELLED_MANUAL" });
+    await loadAppointments();
+  } catch (err) {
+    alert("Error: " + err.message);
+  }
+});
+
+// Mobile cards: delegated click handler (mirror of table handler)
+$("appointmentsMobileCards")?.addEventListener("click", async (e) => {
+  const btn = e.target.closest("button");
+  if (!btn) return;
+  const id = btn.dataset.id;
+  const act = btn.dataset.act;
+  if (!id || !act) return;
   try {
     if (act === "confirm") await apiPut(`/appointments/${id}/status`, { status: "CONFIRMED" });
     if (act === "cancel") await apiPut(`/appointments/${id}/status`, { status: "CANCELLED_MANUAL" });
