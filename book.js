@@ -50,6 +50,14 @@ function todayISO() {
 }
 
 async function fetchInitialData() {
+  // Loader con mensajes progresivos para el cold start de Render
+  showLoader("Cargando barber\u00eda\u2026");
+  const wakeTimers = [
+    setTimeout(() => showLoader("Despertando el servidor\u2026"), 3000),
+    setTimeout(() => showLoader("Preparando todo, un momento\u2026"), 7000),
+    setTimeout(() => showLoader("Esto puede tardar ~15 seg desde cero."), 14000),
+  ];
+
   try {
     const shopRes = await apiGet(`/public/${slug}/barbershop`);
     state.barbershop = shopRes.item;
@@ -71,7 +79,10 @@ async function fetchInitialData() {
     }
   } catch (err) {
     safeText("shopTitle", "Error de carga");
-    safeText("shopMeta", "No pudimos encontrar esta barbería: " + err.message);
+    safeText("shopMeta", "No pudimos encontrar esta barber\u00eda: " + err.message);
+  } finally {
+    wakeTimers.forEach(clearTimeout);
+    hideLoader();
   }
 }
 
@@ -278,6 +289,10 @@ function validateForm() {
 }
 
 async function handleBook() {
+  const btn = $("btnBook");
+  if (btn.disabled) return;
+  btn.disabled = true; // Fase 0: Prevenir doble click
+
   const serviceId = Number($("serviceSelect").value);
   const barberId = Number($("barberSelect").value);
   const date = $("dateInput").value;
@@ -371,6 +386,7 @@ async function handleBook() {
     
   } catch (err) {
     hideLoader();
+    btn.disabled = false; // Fase 0: Permitir reintento tras error
     errBox.textContent = "No logramos confirmar el turno: " + err.message;
     errBox.style.display = "block";
   }

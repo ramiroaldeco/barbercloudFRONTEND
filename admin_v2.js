@@ -52,6 +52,40 @@ function renderGridSkeletons(container, count = 3) {
   container.innerHTML = cards.join("");
 }
 
+// ─── Wake-Up Overlay (Render cold start) ───
+(function initWakeupOverlay() {
+  const overlay = document.createElement("div");
+  overlay.className = "wakeup-overlay";
+  overlay.id = "wakeupOverlay";
+  overlay.innerHTML = `
+    <img class="wakeup-logo" src="./LogoBarberCloud.png" alt="BarberCloud" />
+    <div class="wakeup-spinner"></div>
+    <div class="wakeup-msg" id="wakeupMsg">Conectando…</div>
+  `;
+  document.body.appendChild(overlay);
+
+  // Progresion de mensajes si la carga tarda
+  const msgs = [
+    { delay: 2500, text: "Despertando el servidor…" },
+    { delay: 6000, text: "Preparando todo, un momento…" },
+    { delay: 12000, text: "Esto puede tardar ~15 seg en arrancar desde cero." },
+  ];
+  const timers = msgs.map(({ delay, text }) =>
+    setTimeout(() => {
+      const el = document.getElementById("wakeupMsg");
+      if (el) el.textContent = text;
+    }, delay)
+  );
+
+  window._hideWakeup = function() {
+    timers.forEach(clearTimeout);
+    const ov = document.getElementById("wakeupOverlay");
+    if (!ov) return;
+    ov.classList.add("fade-out");
+    setTimeout(() => { if (ov.parentNode) ov.parentNode.removeChild(ov); }, 600);
+  };
+})()
+
 function setBtnLoading(btnId, state) {
   const btn = $(btnId);
   if (!btn) return;
@@ -516,6 +550,9 @@ async function loadShopHeader() {
     if (bar) bar.style.width = `${pct}%`;
   } catch (e) {
     console.warn("No pude cargar barbería (mine):", e.message);
+  } finally {
+    // Ocultar wake-up overlay independientemente del resultado
+    if (typeof window._hideWakeup === "function") window._hideWakeup();
   }
 }
 
@@ -709,28 +746,29 @@ async function loadAppointments(isSilentPoll = false) {
         } else if (a.status === "CONFIRMED" || a.status === "confirmed") {
           cardActions = `
             <div class="appt-card-actions">
-              <button class="btn" data-act="cancel" data-id="${a.id}">✕ Cancelar</button>
+              <button class="btn" data-act="cancel" data-id="${a.id}">✕ Cancelar turno</button>
             </div>`;
         }
 
         return `
-          <div class="appt-card" data-appid="${a.id}">
-            <div class="appt-card-top">
-              <div class="appt-card-datetime">
-                ${escapeHtml(a.time || "")}
-                <span class="appt-day">${escapeHtml(a.date || "")}</span>
+          <div class="appt-card" data-appid="${a.id}" data-status="${escapeHtml(a.status || '')}">
+            <div class="appt-card-inner">
+              <div class="appt-card-top">
+                <div class="appt-card-datetime">
+                  <span class="appt-card-time">${escapeHtml(a.time || '')}</span>
+                  <span class="appt-card-date">${escapeHtml(a.date || '')}</span>
+                </div>
+                ${statusBadge(a.status, a.lockExpiresAt)}
               </div>
-              ${statusBadge(a.status, a.lockExpiresAt)}
-            </div>
-            <div class="appt-card-body">
-              <span class="appt-card-label">Cliente</span>
-              <span class="appt-card-value">${escapeHtml(a.customerName || "—")}</span>
-              <span class="appt-card-label">Barbero</span>
-              <span class="appt-card-value">${escapeHtml(a.barber?.name || "—")}</span>
-              <span class="appt-card-label">Servicio</span>
-              <span class="appt-card-value">${escapeHtml(a.service?.name || "—")}</span>
-              <span class="appt-card-label">Teléfono</span>
-              <span class="appt-card-value">${escapeHtml(a.customerPhone || "—")}</span>
+              <div class="appt-card-body">
+                <span class="appt-card-label">Cliente</span>
+                <span class="appt-card-value">${escapeHtml(a.customerName || '—')}</span>
+                <span class="appt-card-label">Barbero</span>
+                <span class="appt-card-value">${escapeHtml(a.barber?.name || '—')}</span>
+                <span class="appt-card-label">Servicio</span>
+                <span class="appt-card-value">${escapeHtml(a.service?.name || '—')}</span>
+                ${a.customerPhone ? `<span class="appt-card-label">Teléfono</span><span class="appt-card-value">${escapeHtml(a.customerPhone)}</span>` : ''}
+              </div>
             </div>
             ${cardActions}
           </div>`;

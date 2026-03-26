@@ -138,7 +138,8 @@
     
     async function init() {
       const params = new URLSearchParams(window.location.search);
-      const prefId = params.get("preference_id");
+      // Fase 0: MP incluye external_reference en la URL de retorno. Fallback a preference_id.
+      const prefId = params.get("external_reference") || params.get("preference_id");
       const errBox = document.getElementById("loadingBox");
       const tBox = document.getElementById("ticketBox");
 
