@@ -294,7 +294,6 @@ async function loadStatistics(days = null) {
         borderRadius: 4
       }]
     }, { indexAxis: 'y', plugins: { legend: { display:false } }, scales: { x: { grid:{ color:"rgba(255,255,255,0.05)" } }, y: { grid:{ display:false } } } });
-    document.querySelector("#appointmentsCount").textContent = existingRows.length + " (en pantalla)";
   } catch (err) {
     console.error(err);
     alert("Error cargando métricas: " + err.message);
