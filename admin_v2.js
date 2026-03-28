@@ -1762,6 +1762,31 @@ async function loadMembers() {
     grid.innerHTML = activeMembers.map(m => {
       const avatarSrc = m.avatarBase64 || "https://ui-avatars.com/api/?name=" + encodeURIComponent(m.name) + "&background=1e293b&color=38bdf8";
       const servicesNames = m.services.map(s => s.name).join(", ") || "Sin servicios";
+      
+      // ✅ FIX: Verificar expiración del token MP, no solo el status CONNECTED
+      // Un token expirado aparecía como ✅ ocultando que las señas dejaron de funcionar
+      const isConnected = m.mpStatus === 'CONNECTED' && m.mpAccessToken;
+      const tokenExpired = isConnected && m.mpTokenExpiresAt && new Date(m.mpTokenExpiresAt) < new Date();
+      const mpOk = isConnected && !tokenExpired;
+
+      let mpBadge = '';
+      let mpWarningBlock = '';
+      if (mpOk) {
+        mpBadge = `<span title="Mercado Pago Conectado y activo" style="font-size:12px">✅</span>`;
+      } else if (tokenExpired) {
+        mpBadge = `<span title="Token de Mercado Pago expirado — reconectá" style="font-size:12px; color: #fb923c;">⚠️ MP EXPIRADO</span>`;
+        mpWarningBlock = `
+          <div style="background: rgba(251,146,60,0.12); border: 1px solid #f97316; padding: 8px; border-radius: 6px; font-size: 12px; color: #fdba74; text-align: center;">
+            <b>Token de Mercado Pago expirado.</b><br>Reconectá MP para que siga cobrando señas online.
+          </div>`;
+      } else {
+        mpBadge = `<span title="Mercado Pago NO Conectado" style="font-size:12px">⚠</span>`;
+        mpWarningBlock = `
+          <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid var(--danger); padding: 8px; border-radius: 6px; font-size: 12px; color: #fca5a5; text-align: center;">
+            <b>Mercado Pago no conectado.</b><br>Las reservas quedarán pendientes y no cobrará seña online.
+          </div>`;
+      }
+
       return `
         <div class="card" style="display:flex; flex-direction:column; gap:16px;">
           <div style="display:flex; align-items:center; gap:12px;">
@@ -1769,7 +1794,7 @@ async function loadMembers() {
             <div>
               <h3 style="margin:0; display:flex; align-items:center; gap:8px;">
                 ${escapeHtml(m.name)}
-                ${m.mpStatus === 'CONNECTED' ? '<span title="Mercado Pago Conectado" style="font-size:12px;">✅</span>' : '<span title="Mercado Pago NO Conectado" style="font-size:12px;">⚠</span>'}
+                ${mpBadge}
               </h3>
               <p class="muted" style="margin:4px 0 0; font-size:13px;">${escapeHtml(m.role)}</p>
             </div>
@@ -1778,14 +1803,10 @@ async function loadMembers() {
             <p style="font-size:13px; margin:0"><b>Servicios:</b> <span class="muted">${escapeHtml(servicesNames)}</span></p>
           </div>
           <div style="margin-top:auto; display:flex; flex-direction:column; gap:8px;">
-            ${m.mpStatus !== 'CONNECTED' ? `
-              <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid var(--danger); padding: 8px; border-radius: 6px; font-size: 12px; color: #fca5a5; text-align: center;">
-                <b>Mercado Pago no conectado.</b><br>Las reservas de este profesional quedarán pendientes y no cobrará seña online.
-              </div>
-            ` : ''}
+            ${mpWarningBlock}
             <div style="display:flex; gap:8px; flex-wrap:wrap">
               <button class="btn" data-mp-member="${m.id}" style="flex:1; border-color:#009ee3; color:#009ee3; background:rgba(0,158,227,0.1)">
-                ${m.mpStatus === 'CONNECTED' ? 'Reconectar MP' : 'Conectar MP'}
+                ${mpOk ? 'Reconectar MP' : tokenExpired ? '🔄 Renovar MP' : 'Conectar MP'}
               </button>
             </div>
             <div style="display:flex; gap:8px; flex-wrap:wrap">
