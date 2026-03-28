@@ -294,7 +294,7 @@ async function loadStatistics(days = null) {
         borderRadius: 4
       }]
     }, { indexAxis: 'y', plugins: { legend: { display:false } }, scales: { x: { grid:{ color:"rgba(255,255,255,0.05)" } }, y: { grid:{ display:false } } } });
-
+    document.querySelector("#appointmentsCount").textContent = existingRows.length + " (en pantalla)";
   } catch (err) {
     console.error(err);
     alert("Error cargando métricas: " + err.message);
@@ -608,8 +608,11 @@ setInterval(() => {
 }, 15000);
 
 let currentApptPage = 1;
+let consecutiveErrors = 0;
+let isPollingPaused = false;
 
 async function loadAppointments(isSilentPoll = false, resetPage = false) {
+  if (isPollingPaused && isSilentPoll) return;
   if (resetPage) currentApptPage = 1;
 
   const tbody = document.querySelector("#appointmentsTable tbody");
@@ -799,10 +802,19 @@ async function loadAppointments(isSilentPoll = false, resetPage = false) {
       }).join("");
     }
 
+    consecutiveErrors = 0; // Reset errors flag on success
   } catch (e) {
+    console.error(e);
     if (empty && !isSilentPoll) {
       empty.style.display = "block";
       empty.textContent = "Error cargando turnos: " + e.message;
+    } else if (isSilentPoll) {
+       consecutiveErrors++;
+       if (consecutiveErrors >= 3) {
+          isPollingPaused = true;
+          console.warn("Polling automático pausado por seguridad debido a repetidos fallos del servidor.");
+          setTimeout(() => { isPollingPaused = false; consecutiveErrors = 0; }, 60000); // Retry polling gently after 60s
+       }
     }
   }
 }
