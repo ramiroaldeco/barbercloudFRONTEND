@@ -603,11 +603,15 @@ setInterval(() => {
 // Polling suave y silencioso cada 15s para detectar confirmaciones online
 setInterval(() => {
   if (document.querySelector("#appointmentsTable:not([style*='display: none'])")) {
-    if (typeof loadAppointments === "function") loadAppointments(true);
+    if (typeof loadAppointments === "function") loadAppointments(true, false);
   }
 }, 15000);
 
-async function loadAppointments(isSilentPoll = false) {
+let currentApptPage = 1;
+
+async function loadAppointments(isSilentPoll = false, resetPage = false) {
+  if (resetPage) currentApptPage = 1;
+
   const tbody = document.querySelector("#appointmentsTable tbody");
   const empty = $("appointmentsEmpty");
 
@@ -627,9 +631,12 @@ async function loadAppointments(isSilentPoll = false) {
     if (to) params.set("to", to);
     if (status) params.set("status", status);
     if (q) params.set("q", q);
+    params.set("page", currentApptPage);
+    params.set("limit", 50);
 
     const data = await apiGet(`/appointments?${params.toString()}`);
     let items = data.items || data || [];
+    let pag = data.pagination || null;
 
     // FASE 11 Fix: Separación Histórica Inteligente
     const currentTab = document.querySelector("#view-agenda .tab.active")?.dataset.tab || "list";
@@ -679,6 +686,15 @@ async function loadAppointments(isSilentPoll = false) {
 
     if (empty) empty.style.display = "none";
     
+    if (pag && $("appointmentsPagination")) {
+       $("appointmentsPagination").style.display = "flex";
+       $("apptPageInfo").textContent = `Página ${pag.page} de ${pag.totalPages || 1}`;
+       $("btnApptPrev").disabled = pag.page <= 1;
+       $("btnApptNext").disabled = pag.page >= (pag.totalPages || 1);
+    } else if ($("appointmentsPagination")) {
+       $("appointmentsPagination").style.display = "none";
+    }
+    
     // Purga de Skeletons antes del DOM Diffing (Fase 9 Bugfix)
     tbody.querySelectorAll("tr:not([data-appid])").forEach(tr => tr.remove());
 
@@ -705,6 +721,9 @@ async function loadAppointments(isSilentPoll = false) {
          `;
       } else if (a.status === "CONFIRMED" || a.status === "confirmed") {
          actionsHtml = `<button class="btn" data-act="cancel" data-id="${a.id}">Cancelar</button>`;
+         if (a.paymentStatus === "paid" && a.realPaymentId) {
+             actionsHtml = `<button class="btn" style="background:#009ee3; border-color:#009ee3; color:#fff;" data-act="refund" data-id="${a.id}">Reembolsar</button> ` + actionsHtml;
+         }
       }
 
       const htmlContent = `
@@ -744,8 +763,13 @@ async function loadAppointments(isSilentPoll = false) {
               <button class="btn" data-act="cancel" data-id="${a.id}">✕ Cancelar</button>
             </div>`;
         } else if (a.status === "CONFIRMED" || a.status === "confirmed") {
+          let refundBtn = "";
+          if (a.paymentStatus === "paid" && a.realPaymentId) {
+             refundBtn = `<button class="btn" style="background:#009ee3; border-color:#009ee3; color:#fff;" data-act="refund" data-id="${a.id}">💸 Reembolsar</button>`;
+          }
           cardActions = `
             <div class="appt-card-actions">
+              ${refundBtn}
               <button class="btn" data-act="cancel" data-id="${a.id}">✕ Cancelar turno</button>
             </div>`;
         }
@@ -783,7 +807,15 @@ async function loadAppointments(isSilentPoll = false) {
   }
 }
 
-$("btnApplyFilters")?.addEventListener("click", loadAppointments);
+$("btnApplyFilters")?.addEventListener("click", () => loadAppointments(false, true));
+
+$("btnApptPrev")?.addEventListener("click", () => {
+  if (currentApptPage > 1) { currentApptPage--; loadAppointments(false, false); }
+});
+
+$("btnApptNext")?.addEventListener("click", () => {
+  currentApptPage++; loadAppointments(false, false);
+});
 
 document.querySelector("#appointmentsTable")?.addEventListener("click", async (e) => {
   const btn = e.target.closest("button");
@@ -796,6 +828,13 @@ document.querySelector("#appointmentsTable")?.addEventListener("click", async (e
   try {
     if (act === "confirm") await apiPut(`/appointments/${id}/status`, { status: "CONFIRMED" });
     if (act === "cancel") await apiPut(`/appointments/${id}/status`, { status: "CANCELLED_MANUAL" });
+    if (act === "refund") {
+       if (confirm("¿Estás seguro que querés reembolsar la seña completa al cliente? Este turno se cancelará automáticamente.")) {
+         const res = await apiPost(`/payments/refund/${id}`);
+         if (res.ok) alert("✅ Reembolso exitoso: " + res.message);
+         else alert("❌ Error: " + (res.error || "No se pudo reembolsar. Revisá tu conexión a MP."));
+       }
+    }
     await loadAppointments();
   } catch (err) {
     alert("Error: " + err.message);
@@ -812,6 +851,13 @@ $("appointmentsMobileCards")?.addEventListener("click", async (e) => {
   try {
     if (act === "confirm") await apiPut(`/appointments/${id}/status`, { status: "CONFIRMED" });
     if (act === "cancel") await apiPut(`/appointments/${id}/status`, { status: "CANCELLED_MANUAL" });
+    if (act === "refund") {
+       if (confirm("¿Estás seguro que querés reembolsar la seña completa al cliente? Este turno se cancelará automáticamente.")) {
+         const res = await apiPost(`/payments/refund/${id}`);
+         if (res.ok) alert("✅ Reembolso exitoso: " + res.message);
+         else alert("❌ Error: " + (res.error || "No se pudo reembolsar. Revisá tu conexión a MP."));
+       }
+    }
     await loadAppointments();
   } catch (err) {
     alert("Error: " + err.message);
