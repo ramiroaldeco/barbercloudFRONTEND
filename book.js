@@ -300,6 +300,7 @@ async function handleBook() {
   const name = $("nameInput").value.trim();
   const phone = $("phoneInput").value.trim();
   const email = $("emailInput").value.trim();
+  const wpOptIn = $("wpOptInInput") ? $("wpOptInInput").checked : true;
   
   const errBox = $("bookAlert");
   const succBox = $("bookMsgSuccess");
@@ -316,7 +317,8 @@ async function handleBook() {
       time,
       customerName: name,
       customerPhone: phone,
-      customerEmail: email || null
+      customerEmail: email || null,
+      wpOptIn
     });
 
     hideLoader();
