@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BarberCloud — Super Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #080e1a;
+      --surface: #0f1b2d;
+      --surface2: #162032;
+      --border: #1e3450;
+      --primary: #38bdf8;
+      --primary-dim: rgba(56,189,248,0.12);
+      --text: #e2e8f0;
+      --muted: #64748b;
+      --green: #22c55e;
+      --green-dim: rgba(34,197,94,0.12);
+      --yellow: #eab308;
+      --yellow-dim: rgba(234,179,8,0.12);
+      --red: #ef4444;
+      --red-dim: rgba(239,68,68,0.12);
+      --radius: 12px;
+    }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── LOGIN SCREEN ─────────────────────────── */
+    #loginScreen {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 24px;
+    }
+    .login-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 48px 40px;
+      width: 100%;
+      max-width: 400px;
+      text-align: center;
+    }
+    .login-card .logo {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--primary);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .login-card h1 {
+      font-size: 1.4rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .login-card p.subtitle {
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 32px;
+    }
+    .login-card input {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 15px;
+      padding: 12px 14px;
+      margin-bottom: 16px;
+      letter-spacing: 3px;
+      outline: none;
+      font-family: monospace;
+    }
+    .login-card input:focus { border-color: var(--primary); }
+    .btn-login {
+      width: 100%;
+      background: var(--primary);
+      color: #0f172a;
+      border: none;
+      border-radius: 8px;
+      padding: 13px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    .btn-login:hover { opacity: 0.88; }
+    .login-error {
+      color: var(--red);
+      font-size: 13px;
+      margin-top: 12px;
+      min-height: 18px;
+    }
+
+    /* ── DASHBOARD ───────────────────────────── */
+    #dashboard { display: none; }
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 28px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .topbar-left { display: flex; align-items: center; gap: 12px; }
+    .topbar-badge {
+      background: var(--red-dim);
+      color: var(--red);
+      border: 1px solid var(--red);
+      border-radius: 6px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      padding: 3px 8px;
+      text-transform: uppercase;
+    }
+    .topbar h2 { font-size: 1rem; font-weight: 700; }
+    .btn-logout {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 13px;
+      padding: 7px 14px;
+      transition: border-color 0.2s, color 0.2s;
+    }
+    .btn-logout:hover { border-color: var(--red); color: var(--red); }
+
+    .main {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 32px 24px;
+    }
+    .section-title {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 16px;
+    }
+
+    /* ── STAT CARDS ──────────────────────────── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 16px;
+      margin-bottom: 40px;
+    }
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      transition: border-color 0.2s;
+    }
+    .stat-card:hover { border-color: var(--primary); }
+    .stat-label {
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+    }
+    .stat-value {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--primary);
+    }
+    .stat-sub {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+    .stat-card.green .stat-value { color: var(--green); }
+    .stat-card.yellow .stat-value { color: var(--yellow); }
+
+    /* ── TABLE ───────────────────────────────── */
+    .table-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    table { width: 100%; border-collapse: collapse; }
+    th {
+      background: var(--surface2);
+      border-bottom: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      padding: 12px 16px;
+      text-align: left;
+      text-transform: uppercase;
+    }
+    td {
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+      font-size: 13px;
+      padding: 13px 16px;
+      vertical-align: middle;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--surface2); }
+
+    .pill {
+      display: inline-block;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 10px;
+    }
+    .pill-green { background: var(--green-dim); color: var(--green); }
+    .pill-muted { background: rgba(100,116,139,0.15); color: var(--muted); }
+
+    /* ── FEE EDITOR ──────────────────────────── */
+    .fee-cell { display: flex; align-items: center; gap: 8px; }
+    .fee-input {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-size: 13px;
+      padding: 5px 9px;
+      width: 90px;
+      outline: none;
+      font-family: 'Inter', sans-serif;
+    }
+    .fee-input:focus { border-color: var(--primary); }
+    .btn-save-fee {
+      background: var(--primary-dim);
+      border: 1px solid var(--primary);
+      border-radius: 6px;
+      color: var(--primary);
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 5px 12px;
+      transition: background 0.2s;
+    }
+    .btn-save-fee:hover { background: rgba(56,189,248,0.22); }
+    .fee-saved {
+      font-size: 11px;
+      color: var(--green);
+      display: none;
+    }
+
+    /* ── LOADING ─────────────────────────────── */
+    .skeleton {
+      background: linear-gradient(90deg, var(--surface2) 25%, var(--border) 50%, var(--surface2) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s infinite;
+      border-radius: 6px;
+      height: 18px;
+    }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+  </style>
+</head>
+<body>
+
+<!-- ── LOGIN ─────────────────────────────────────── -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="logo">BarberCloud</div>
+    <h1>Super Admin</h1>
+    <p class="subtitle">Acceso restringido · Solo para el dueño del SaaS</p>
+    <input type="password" id="passInput" placeholder="Contraseña maestra" autocomplete="current-password" />
+    <button class="btn-login" id="btnLogin">Ingresar</button>
+    <div class="login-error" id="loginError"></div>
+  </div>
+</div>
+
+<!-- ── DASHBOARD ──────────────────────────────────── -->
+<div id="dashboard">
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-badge">Super Admin</div>
+      <h2>BarberCloud — Panel de Control</h2>
+    </div>
+    <button class="btn-logout" id="btnLogout">Cerrar sesión</button>
+  </div>
+
+  <div class="main">
+    <!-- STATS -->
+    <div class="section-title" style="margin-bottom:16px">Métricas globales del SaaS</div>
+    <div class="stats-grid" id="statsGrid">
+      <!-- Se llena dinámicamente -->
+      <div class="stat-card"><div class="skeleton" style="height:14px;margin-bottom:10px;width:60%"></div><div class="skeleton" style="height:36px;width:50%"></div></div>
+      <div class="stat-card"><div class="skeleton" style="height:14px;margin-bottom:10px;width:60%"></div><div class="skeleton" style="height:36px;width:50%"></div></div>
+      <div class="stat-card"><div class="skeleton" style="height:14px;margin-bottom:10px;width:60%"></div><div class="skeleton" style="height:36px;width:50%"></div></div>
+      <div class="stat-card"><div class="skeleton" style="height:14px;margin-bottom:10px;width:60%"></div><div class="skeleton" style="height:36px;width:50%"></div></div>
+      <div class="stat-card"><div class="skeleton" style="height:14px;margin-bottom:10px;width:60%"></div><div class="skeleton" style="height:36px;width:50%"></div></div>
+      <div class="stat-card"><div class="skeleton" style="height:14px;margin-bottom:10px;width:60%"></div><div class="skeleton" style="height:36px;width:50%"></div></div>
+    </div>
+
+    <!-- TABLE -->
+    <div class="section-title" style="margin-bottom:16px; margin-top:8px">Barberías registradas</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Barbería</th>
+            <th>Slug / Ciudad</th>
+            <th>Barberos</th>
+            <th>Turnos</th>
+            <th>Fee actual del SaaS ($ARS)</th>
+            <th>Registrada</th>
+          </tr>
+        </thead>
+        <tbody id="shopsBody">
+          <tr><td colspan="7"><div class="skeleton" style="height:16px;"></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+  const API = "https://barbercloud.onrender.com/api";
+  const KEY = "bc_superadmin_token";
+
+  function getToken() { return localStorage.getItem(KEY); }
+  function setToken(t) { localStorage.setItem(KEY, t); }
+  function clearToken() { localStorage.removeItem(KEY); }
+
+  async function apiFetch(path, opts = {}) {
+    const token = getToken();
+    const res = await fetch(API + path, {
+      ...opts,
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: "Bearer " + token } : {}),
+        ...(opts.headers || {})
+      },
+      body: opts.body ? JSON.stringify(opts.body) : undefined
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || res.statusText);
+    return json;
+  }
+
+  // ── LOGIN ─────────────────────────────────────
+  document.getElementById("btnLogin").addEventListener("click", login);
+  document.getElementById("passInput").addEventListener("keydown", e => { if (e.key === "Enter") login(); });
+
+  async function login() {
+    const pass = document.getElementById("passInput").value.trim();
+    const errEl = document.getElementById("loginError");
+    errEl.textContent = "";
+    if (!pass) { errEl.textContent = "Ingresá la contraseña."; return; }
+    try {
+      const data = await apiFetch("/superadmin/login", { method: "POST", body: { password: pass } });
+      setToken(data.token);
+      showDashboard();
+    } catch (err) {
+      errEl.textContent = err.message;
+    }
+  }
+
+  document.getElementById("btnLogout").addEventListener("click", () => {
+    clearToken();
+    document.getElementById("dashboard").style.display = "none";
+    document.getElementById("loginScreen").style.display = "flex";
+    document.getElementById("passInput").value = "";
+  });
+
+  // ── AUTO-LOGIN si hay token guardado ──────────
+  if (getToken()) showDashboard();
+
+  async function showDashboard() {
+    document.getElementById("loginScreen").style.display = "none";
+    document.getElementById("dashboard").style.display = "block";
+    loadStats();
+    loadShops();
+  }
+
+  // ── STATS ─────────────────────────────────────
+  async function loadStats() {
+    const grid = document.getElementById("statsGrid");
+    try {
+      const s = await apiFetch("/superadmin/stats");
+      const fmt = (n) => n?.toLocaleString("es-AR") ?? "—";
+      const money = (n) => n ? "$" + n.toLocaleString("es-AR") : "$0";
+      grid.innerHTML = `
+        <div class="stat-card"><div class="stat-label">Barberías</div><div class="stat-value">${fmt(s.totalBarbershops)}</div><div class="stat-sub">registradas</div></div>
+        <div class="stat-card"><div class="stat-label">Barberos</div><div class="stat-value">${fmt(s.totalBarbers)}</div><div class="stat-sub">activos</div></div>
+        <div class="stat-card green"><div class="stat-label">Turnos confirmados</div><div class="stat-value">${fmt(s.confirmedAppointments)}</div><div class="stat-sub">de ${fmt(s.totalAppointments)} totales</div></div>
+        <div class="stat-card yellow"><div class="stat-label">Últimos 7 días</div><div class="stat-value">${fmt(s.last7DaysAppointments)}</div><div class="stat-sub">turnos nuevos</div></div>
+        <div class="stat-card"><div class="stat-label">Clientes únicos</div><div class="stat-value">${fmt(s.uniqueCustomers)}</div><div class="stat-sub">por teléfono</div></div>
+        <div class="stat-card green"><div class="stat-label">Fee cobrado</div><div class="stat-value" style="font-size:1.4rem">${money(s.totalFeeVolume)}</div><div class="stat-sub">volumen señas: ${money(s.totalDepositVolume)}</div></div>
+      `;
+    } catch (err) {
+      grid.innerHTML = `<div style="color:var(--red);font-size:13px;padding:16px 0">Error cargando métricas: ${err.message}</div>`;
+    }
+  }
+
+  // ── BARBERSHOPS TABLE ─────────────────────────
+  async function loadShops() {
+    const body = document.getElementById("shopsBody");
+    try {
+      const data = await apiFetch("/superadmin/barbershops");
+      const shops = data.items || [];
+      if (!shops.length) {
+        body.innerHTML = `<tr><td colspan="7" style="color:var(--muted);text-align:center;padding:24px">No hay barberías registradas.</td></tr>`;
+        return;
+      }
+      body.innerHTML = shops.map((shop, i) => {
+        const date = new Date(shop.createdAt).toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "2-digit" });
+        return `
+          <tr>
+            <td style="color:var(--muted)">${i + 1}</td>
+            <td><b>${escHtml(shop.name)}</b></td>
+            <td>
+              <span style="color:var(--primary);font-size:12px">${escHtml(shop.slug)}</span>
+              ${shop.city ? `<br><span style="color:var(--muted);font-size:11px">${escHtml(shop.city)}</span>` : ""}
+            </td>
+            <td>${shop._count?.barbers ?? 0}</td>
+            <td>
+              <span class="pill pill-green">${shop.confirmedAppointments} confirmados</span>
+              <br><span style="color:var(--muted);font-size:11px">${shop._count?.appointments ?? 0} totales</span>
+            </td>
+            <td>
+              <div class="fee-cell">
+                <input type="number" class="fee-input" id="fee_${shop.id}" value="${shop.platformFee ?? 0}" min="0" step="50" />
+                <button class="btn-save-fee" onclick="saveFee(${shop.id})">Guardar</button>
+                <span class="fee-saved" id="feeSaved_${shop.id}">✓ Guardado</span>
+              </div>
+            </td>
+            <td style="color:var(--muted);font-size:12px">${date}</td>
+          </tr>
+        `;
+      }).join("");
+    } catch (err) {
+      body.innerHTML = `<tr><td colspan="7" style="color:var(--red);font-size:13px;padding:16px">Error: ${err.message}</td></tr>`;
+    }
+  }
+
+  async function saveFee(shopId) {
+    const input = document.getElementById("fee_" + shopId);
+    const savedEl = document.getElementById("feeSaved_" + shopId);
+    const fee = Number(input.value);
+    if (isNaN(fee) || fee < 0) { alert("Ingresá un fee válido (0 o más)."); return; }
+    try {
+      await apiFetch(`/superadmin/barbershops/${shopId}/fee`, {
+        method: "PATCH",
+        body: { platformFee: fee }
+      });
+      savedEl.style.display = "inline";
+      setTimeout(() => { savedEl.style.display = "none"; }, 2500);
+    } catch (err) {
+      alert("Error guardando el fee: " + err.message);
+    }
+  }
+
+  function escHtml(s) {
+    return String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  }
+</script>
+</body>
+</html>

@@ -1676,7 +1676,7 @@ async function renderCalendar() {
       const key = `${d.date}_${h}`;
       const appts = grid[key] || [];
       const content = appts.map(a => {
-        const badge = a.status === "confirmed" ? "good" : "warn";
+        const badge = (a.status || "").toUpperCase() === "CONFIRMED" ? "good" : "warn";
         const barberTag = a.barber?.name ? `<span style="opacity:0.6">[${escapeHtml(a.barber.name)}]</span> ` : "";
         return `<div class="badge ${badge}" style="font-size:11px;margin:2px 0;display:block">${barberTag}${escapeHtml(a.customerName || "?")} ${escapeHtml(a.time || "")}</div>`;
       }).join("");

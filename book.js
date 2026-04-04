@@ -285,8 +285,7 @@ function goStep(n) {
 function validateForm() {
   const name = $("nameInput").value.trim();
   const phone = $("phoneInput").value.trim();
-  const email = $("emailInput").value.trim();
-  $("btnBook").disabled = !(name && phone && email && email.includes("@"));
+  $("btnBook").disabled = !(name && phone);
 }
 
 async function handleBook() {
