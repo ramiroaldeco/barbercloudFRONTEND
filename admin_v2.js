@@ -1944,9 +1944,8 @@ $("btnNewMember")?.addEventListener("click", async () => {
       <input id="memName" class="input" placeholder="Ej: Carlos" />
       <label class="label">Rol / Especialidad</label>
       <input id="memRole" class="input" placeholder="Ej: Barbero Senior" value="Barbero" />
-      <label class="label">WhatsApp (para recibir avisos)</label>
-      <input id="memPhone" class="input" type="tel" placeholder="Ej: 549112345678" />
-      <small style="color:var(--text-muted); font-size:0.75rem; display:block; margin-bottom:8px;">Código de área sin +, ej: 549351...</small>
+      <label class="label">Email para avisos de nuevos turnos</label>
+      <input class="input" id="createBarberEmail" type="email" placeholder="barbero@email.com" />
       <label class="label" style="margin-top:16px;">Servicios asignados</label>
       <div style="display:flex; flex-direction:column; gap:6px; background:var(--surface); padding:10px; border-radius:8px; border:1px solid var(--border);">
         ${servicesHtml || '<span class="muted" style="font-size:13px">Creá servicios primero.</span>'}
@@ -1970,11 +1969,11 @@ $("btnNewMember")?.addEventListener("click", async () => {
     try { avatarBase64 = await compressImageToBase64(fileInput.files[0]); } catch (err) {}
   }
   
-  const phone = $("memPhone")?.value.trim() || null;
+  const email = $("createBarberEmail")?.value.trim() || null;
   const servicesIds = Array.from(document.querySelectorAll('input[name="memServices"]:checked')).map(el => el.value);
   
   try {
-    await apiPost("/members", { name, role, phone, avatarBase64, servicesIds });
+    await apiPost("/members", { name, role, phone: email, avatarBase64, servicesIds });
     await loadMembers();
   } catch (err) { alert("Error: " + err.message); }
 });
@@ -2064,9 +2063,8 @@ $("membersGrid")?.addEventListener("click", async (e) => {
         <input id="memName" class="input" value="${escapeAttr(m.name)}" />
         <label class="label">Rol / Especialidad</label>
         <input id="memRole" class="input" value="${escapeAttr(m.role)}" />
-        <label class="label">WhatsApp (para recibir avisos)</label>
-        <input id="memPhone" class="input" type="tel" value="${escapeAttr(m.phone || "")}" placeholder="Ej: 549112345678" />
-        <small style="color:var(--text-muted); font-size:0.75rem; display:block; margin-bottom:8px;">Código de área sin +, ej: 549351...</small>
+        <label class="label">Email para avisos de nuevos turnos</label>
+        <input id="memEmailEdit" class="input" type="email" value="${escapeAttr(m.email || "")}" placeholder="barbero@email.com" />
         <label class="label" style="margin-top:16px;">Servicios</label>
         <div style="display:flex; flex-direction:column; gap:6px; background:var(--surface); padding:10px; border-radius:8px; border:1px solid var(--border);">
           ${servicesHtml}
@@ -2088,11 +2086,11 @@ $("membersGrid")?.addEventListener("click", async (e) => {
     if (fileInput && fileInput.files && fileInput.files[0]) {
       try { avatarBase64 = await compressImageToBase64(fileInput.files[0]); } catch (err) {}
     }
-    const phone = $("memPhone")?.value.trim() || null;
+    const email = $("memEmailEdit")?.value.trim() || null;
     const servicesIds = Array.from(document.querySelectorAll('input[name="memServices"]:checked')).map(el => el.value);
     
     try {
-      await apiPut("/members/" + id, { name, role, phone, avatarBase64, servicesIds });
+      await apiPut("/members/" + id, { name, role, phone: email, avatarBase64, servicesIds });
       await loadMembers();
     } catch (err) { alert("Error: " + err.message); }
     return;

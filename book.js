@@ -285,7 +285,8 @@ function goStep(n) {
 function validateForm() {
   const name = $("nameInput").value.trim();
   const phone = $("phoneInput").value.trim();
-  $("btnBook").disabled = !(name && phone);
+  const email = $("emailInput").value.trim();
+  $("btnBook").disabled = !(name && phone && email && email.includes("@"));
 }
 
 async function handleBook() {
@@ -300,8 +301,6 @@ async function handleBook() {
   const name = $("nameInput").value.trim();
   const phone = $("phoneInput").value.trim();
   const email = $("emailInput").value.trim();
-  const wpOptIn = $("wpOptInInput") ? $("wpOptInInput").checked : true;
-  
   const errBox = $("bookAlert");
   const succBox = $("bookMsgSuccess");
   errBox.style.display = "none";
@@ -317,8 +316,7 @@ async function handleBook() {
       time,
       customerName: name,
       customerPhone: phone,
-      customerEmail: email || null,
-      wpOptIn
+      customerEmail: email || null
     });
 
     hideLoader();
