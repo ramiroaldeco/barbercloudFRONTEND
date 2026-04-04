@@ -422,6 +422,7 @@ function attachListeners() {
   $("dateInput")?.addEventListener("change", renderSlotsAvailable);
   $("nameInput")?.addEventListener("input", validateForm);
   $("phoneInput")?.addEventListener("input", validateForm);
+  $("emailInput")?.addEventListener("input", validateForm);
   
   $("btnBook")?.addEventListener("click", handleBook);
 }
