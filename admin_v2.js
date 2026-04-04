@@ -971,6 +971,12 @@ async function openAddTurnModal() {
           <label class="label">6. Teléfono (opcional)</label>
           <input class="input" id="apptPhone" placeholder="Opcional..." autocomplete="off" />
         </div>
+
+        <div class="step-group" id="step7" style="display:none;">
+          <label class="label">7. Email del cliente (opcional)</label>
+          <input class="input" id="apptEmail" type="email" placeholder="cliente@email.com" autocomplete="off" />
+          <small style="color:var(--text-muted); font-size:0.75rem; display:block; margin-top:4px;">Si lo completás, le llega la confirmación por email.</small>
+        </div>
       `,
       okText: "Crear turno",
     });
@@ -985,6 +991,7 @@ async function openAddTurnModal() {
     const date = String(safeVal("apptDate")).trim();
     const time = String(safeVal("apptTime")).trim();
     const customerPhone = String(safeVal("apptPhone")).trim();
+    const customerEmail = String(safeVal("apptEmail") || "").trim();
 
     if (!customerName) return alert("Completá el nombre del cliente.");
     if (!serviceId) return alert("Seleccioná el servicio.");
@@ -999,7 +1006,8 @@ async function openAddTurnModal() {
       time,
       customerName,
       customerPhone: customerPhone || null,
-      status: "pending",
+      customerEmail: customerEmail || null,
+      status: "CONFIRMED",
     });
 
     await loadAppointments();
@@ -1023,6 +1031,7 @@ async function loadAvailableTimes() {
   timeSelect.innerHTML = `<option value="">Cargando horarios...</option>`;
   if (loadHint) loadHint.style.display = "block";
   $("step6").style.display = "none";
+  if ($("step7")) $("step7").style.display = "none";
 
   try {
     const shop = window._addTurnData.shop;
@@ -1057,6 +1066,7 @@ document.addEventListener("change", (e) => {
     $("step4").style.display = "none";
     $("step5").style.display = "none";
     $("step6").style.display = "none";
+    if ($("step7")) $("step7").style.display = "none";
 
     if (!srvId) {
       step3.style.display = "none";
@@ -1103,8 +1113,10 @@ document.addEventListener("change", (e) => {
   if (e.target.id === "apptTime") {
     if (e.target.value) {
       $("step6").style.display = "block";
+      if ($("step7")) $("step7").style.display = "block";
     } else {
       $("step6").style.display = "none";
+      if ($("step7")) $("step7").style.display = "none";
     }
   }
 });
