@@ -740,7 +740,13 @@ select.input {
   .filters #btnApplyFilters { grid-column: 1 / -1; }
 
   /* ---- AGENDA TABLE: hidden on mobile, replaced by cards ---- */
-  .table-wrap { display: none; }
+  #view-agenda > .card > .card-body > .table-wrap { display: none; }
+  
+  /* Permite scroll horizontal en las demas tablas en celular */
+  .table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
   .mobile-cards {
     display: flex;
     flex-direction: column;

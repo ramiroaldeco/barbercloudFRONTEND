@@ -539,7 +539,8 @@ btnLogin?.addEventListener("click", async () => {
 
 $("btnLogout")?.addEventListener("click", () => {
   clearToken();
-  openLogin();
+  window.location.hash = "";
+  window.location.reload();
 });
 
 // ---- shop header ----
