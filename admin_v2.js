@@ -1616,19 +1616,25 @@ document.querySelector(".tabs")?.addEventListener("click", (e) => {
   document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
   tab.classList.add("active");
 
-  const tableWrap = document.querySelector("#view-agenda .table-wrap");
+  const tableWrap = document.querySelector("#view-agenda > .card > .card-body > .table-wrap");
+  const mobileCardsEl = $("appointmentsMobileCards");
+  const paginationEl = $("appointmentsPagination");
   const filtersEl = document.querySelector("#view-agenda .filters");
   const emptyEl = $("appointmentsEmpty");
   const calEl = $("calendarView");
 
   if (mode === "list") {
     if (tableWrap) tableWrap.style.display = "block";
+    if (mobileCardsEl) mobileCardsEl.style.display = "flex";
+    if (paginationEl) paginationEl.style.display = "flex";
     if (filtersEl) filtersEl.style.display = "flex";
     if (emptyEl) emptyEl.style.display = "";
     if (calEl) calEl.style.display = "none";
     loadAppointments();
   } else {
     if (tableWrap) tableWrap.style.display = "none";
+    if (mobileCardsEl) mobileCardsEl.style.display = "none";
+    if (paginationEl) paginationEl.style.display = "none";
     if (filtersEl) filtersEl.style.display = "none";
     if (emptyEl) emptyEl.style.display = "none";
     if (calEl) calEl.style.display = "block";
