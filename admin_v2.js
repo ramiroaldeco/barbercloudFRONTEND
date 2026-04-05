@@ -975,7 +975,6 @@ async function openAddTurnModal() {
         <div class="step-group" id="step7" style="display:none;">
           <label class="label">7. Email del cliente (opcional)</label>
           <input class="input" id="apptEmail" type="email" placeholder="cliente@email.com" autocomplete="off" />
-          <small style="color:var(--text-muted); font-size:0.75rem; display:block; margin-top:4px;">Si lo completás, le llega la confirmación por email.</small>
         </div>
       `,
       okText: "Crear turno",
