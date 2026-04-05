@@ -299,7 +299,6 @@ async function handleBook() {
   const time = state.selectedTime;
   const name = $("nameInput").value.trim();
   const phone = $("phoneInput").value.trim();
-  const email = $("emailInput").value.trim();
   const errBox = $("bookAlert");
   const succBox = $("bookMsgSuccess");
   errBox.style.display = "none";
@@ -314,8 +313,7 @@ async function handleBook() {
       date,
       time,
       customerName: name,
-      customerPhone: phone,
-      customerEmail: email || null
+      customerPhone: phone
     });
 
     hideLoader();
