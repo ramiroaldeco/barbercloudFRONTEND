@@ -186,7 +186,6 @@ async function loadStatistics(days = null) {
     days = activeChip ? activeChip.dataset.range : 30;
   }
 
-  // Visual skeleton / Loading
   safeText("statNetIncome", "...");
   safeText("statConfirmed", "...");
   safeText("statAvgTicket", "...");
@@ -194,110 +193,131 @@ async function loadStatistics(days = null) {
   
   try {
     const res = await apiGet(`/statistics?days=${days}`);
-    const { summary, charts, rankings } = res;
-
-    // 1. Llenar KPIs
-    safeText("statNetIncome", "$" + (summary.totalNetIncome || 0).toLocaleString("es-AR"));
-    safeText("statConfirmed", summary.confirmedCount || 0);
-    safeText("statAvgTicket", "$" + (summary.averageTicket || 0).toLocaleString("es-AR"));
-    safeText("statCanceled", summary.canceledCount || 0);
-
-    safeText("statTopBarber", summary.topBarber || "-");
-    safeText("statFreqClient", summary.topClient || "-");
-    
-    const ratio = summary.confirmedCount > 0 
-      ? Math.round((summary.confirmedCount / (summary.confirmedCount + summary.canceledCount)) * 100)
-      : 0;
-    safeText("statRatio", ratio + "%");
-
-    // 2. Ranking Clientes
-    const listEl = $("topClientsList");
-    if (listEl) {
-      if (!rankings.topClients.length) {
-        listEl.innerHTML = `<li class="muted">No hay clientes en este rango.</li>`;
-      } else {
-        listEl.innerHTML = rankings.topClients.map((c, i) => `
-          <li style="display:flex; justify-content:space-between; align-items:center; background:rgba(0,0,0,0.2); padding:10px 14px; border-radius:12px; border:1px solid var(--border);">
-            <div style="display:flex; align-items:center; gap:10px;">
-              <div style="width:28px; height:28px; border-radius:50%; background:var(--bg-card); display:flex; align-items:center; justify-content:center; font-weight:bold; color:var(--primary);">${i+1}</div>
-              <div style="font-weight:600;">${escapeHtml(c.name || "Cliente")}</div>
-            </div>
-            <div style="text-align:right; font-size:13px;">
-              <div style="color:var(--good); font-weight:bold;">$${c.spent.toLocaleString("es-AR")}</div>
-              <div class="muted">${c.count} turnos</div>
-            </div>
-          </li>
-        `).join("");
-      }
-    }
-
-    // 3. Renderizar Gráficos con Chart.js
-    renderChart("evolutionChart", "line", {
-      labels: charts.timeseries.map(t => {
-        // Formatear la fecha para que sea más legible (MM-DD o YYYY-MM)
-        const parts = t.date.split("-");
-        return parts.length === 3 ? `${parts[2]}/${parts[1]}` : `${parts[1]}/${parts[0]}`;
-      }),
-      datasets: [
-        {
-          label: "Ingresos Netos ($)",
-          data: charts.timeseries.map(t => t.income),
-          borderColor: "#2f7bff",
-          backgroundColor: "rgba(47, 123, 255, 0.15)",
-          borderWidth: 3,
-          fill: true,
-          tension: 0.3,
-          pointBackgroundColor: "#0b0f14",
-          pointBorderColor: "#2f7bff",
-          pointRadius: 4,
-          pointHoverRadius: 6,
-          yAxisID: 'y'
-        },
-        {
-          label: "Turnos",
-          data: charts.timeseries.map(t => t.appointments),
-          borderColor: "rgba(232, 238, 252, 0.4)",
-          backgroundColor: "transparent",
-          borderWidth: 2,
-          borderDash: [5, 5],
-          tension: 0.3,
-          pointRadius: 0,
-          yAxisID: 'y1'
-        }
-      ]
-    }, {
-      scales: {
-        x: { grid: { color: "rgba(255,255,255,0.05)" } },
-        y: { type: 'linear', display: true, position: 'left', grid: { color: "rgba(255,255,255,0.05)" } },
-        y1: { type: 'linear', display: false, position: 'right', grid: { drawOnChartArea: false } },
-      },
-      plugins: { tooltip: { mode: 'index', intersect: false } },
-      interaction: { mode: 'nearest', axis: 'x', intersect: false }
-    });
-
-    renderChart("barberChart", "doughnut", {
-      labels: charts.barbersData.map(b => b.name),
-      datasets: [{
-        data: charts.barbersData.map(b => b.income),
-        backgroundColor: ["#2f7bff", "#27d17c", "#ffcc66", "#a855f7", "#ec4899", "#f97316"],
-        borderWidth: 0,
-        hoverOffset: 4
-      }]
-    }, { cutout: '70%', plugins: { legend: { position: 'right' } } });
-
-    renderChart("serviceChart", "bar", {
-      labels: charts.servicesData.map(s => escapeHtml(s.name)),
-      datasets: [{
-        label: "Ingreso Generado",
-        data: charts.servicesData.map(s => s.income),
-        backgroundColor: "rgba(39, 209, 124, 0.8)",
-        borderRadius: 4
-      }]
-    }, { indexAxis: 'y', plugins: { legend: { display:false } }, scales: { x: { grid:{ color:"rgba(255,255,255,0.05)" } }, y: { grid:{ display:false } } } });
+    window._lastStats = res;
+    renderStatisticsUI();
   } catch (err) {
-    console.error(err);
-    alert("Error cargando métricas: " + err.message);
+    console.error("Error cargando stats:", err);
+    safeText("statNetIncome", "Error");
   }
+}
+
+function renderStatisticsUI() {
+  if (!window._lastStats) return;
+  
+  const { summary, charts, rankings } = window._lastStats;
+  const type = $("statsIncomeType")?.value || "total";
+
+  const mainIncome = type === "total" ? summary.totalFullIncome : summary.totalDepositIncome;
+
+  safeText("statNetIncome", "$" + (mainIncome || 0).toLocaleString("es-AR"));
+  safeText("statConfirmed", summary.confirmedCount || 0);
+  safeText("statAvgTicket", "$" + (summary.averageTicket || 0).toLocaleString("es-AR"));
+  safeText("statCanceled", summary.canceledCount || 0);
+
+  safeText("statTopBarber", summary.topBarber || "-");
+  safeText("statFreqClient", summary.topClient || "-");
+  
+  const ratio = summary.confirmedCount > 0 
+    ? Math.round((summary.confirmedCount / (summary.confirmedCount + summary.canceledCount)) * 100)
+    : 0;
+  safeText("statRatio", ratio + "%");
+
+  const listEl = $("topClientsList");
+  if (listEl) {
+    if (!rankings.topClients.length) {
+      listEl.innerHTML = `<li class="muted">No hay clientes en este rango.</li>`;
+    } else {
+      listEl.innerHTML = rankings.topClients.map((c, i) => `
+        <li style="display:flex; justify-content:space-between; align-items:center; background:rgba(0,0,0,0.2); padding:10px 14px; border-radius:12px; border:1px solid var(--border);">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <div style="width:28px; height:28px; border-radius:50%; background:var(--bg-card); display:flex; align-items:center; justify-content:center; font-weight:bold; color:var(--primary);">${i+1}</div>
+            <div style="font-weight:600;">${escapeHtml(c.name || "Cliente")}</div>
+          </div>
+          <div style="text-align:right; font-size:13px;">
+            <div style="color:var(--good); font-weight:bold;">$${(type === "total" ? c.total : c.deposit).toLocaleString("es-AR")}</div>
+            <div class="muted">${c.count} turnos</div>
+          </div>
+        </li>
+      `).join("");
+    }
+  }
+
+  renderChart("evolutionChart", "line", {
+    labels: charts.timeseries.map(t => {
+      const parts = t.date.split("-");
+      return parts.length === 3 ? `${parts[2]}/${parts[1]}` : `${parts[1]}/${parts[0]}`;
+    }),
+    datasets: [
+      {
+        label: "Ingresos ($)",
+        data: charts.timeseries.map(t => type === "total" ? t.total : t.deposit),
+        borderColor: "#2f7bff",
+        backgroundColor: "rgba(47, 123, 255, 0.15)",
+        borderWidth: 3,
+        fill: true,
+        tension: 0.3,
+        pointBackgroundColor: "#0b0f14",
+        pointBorderColor: "#2f7bff",
+        pointRadius: 4,
+        pointHoverRadius: 6,
+        yAxisID: 'y'
+      },
+      {
+        label: "Turnos",
+        data: charts.timeseries.map(t => t.appointments),
+        borderColor: "rgba(232, 238, 252, 0.4)",
+        backgroundColor: "transparent",
+        borderWidth: 2,
+        borderDash: [5, 5],
+        tension: 0.3,
+        pointRadius: 0,
+        yAxisID: 'y1'
+      }
+    ]
+  }, {
+    scales: {
+      x: { grid: { color: "rgba(255,255,255,0.05)" } },
+      y: { type: 'linear', display: true, position: 'left', grid: { color: "rgba(255,255,255,0.05)" } },
+      y1: { type: 'linear', display: false, position: 'right', grid: { drawOnChartArea: false } },
+    },
+    plugins: { tooltip: { mode: 'index', intersect: false } },
+    interaction: { mode: 'nearest', axis: 'x', intersect: false }
+  });
+
+  renderChart("barberChart", "doughnut", {
+    labels: charts.barbersData.map(b => b.name),
+    datasets: [{
+      data: charts.barbersData.map(b => type === "total" ? b.total : b.deposit),
+      backgroundColor: ["#2f7bff", "#27d17c", "#ffcc66", "#a855f7", "#ec4899", "#f97316"],
+      borderWidth: 0,
+      hoverOffset: 4
+    }]
+  }, { cutout: '70%', plugins: { legend: { position: 'right' } } });
+
+  renderChart("serviceChart", "bar", {
+    labels: charts.servicesData.map(s => escapeHtml(s.name)),
+    datasets: [{
+      label: "Ingreso",
+      data: charts.servicesData.map(s => type === "total" ? s.total : s.deposit),
+      backgroundColor: "rgba(39, 209, 124, 0.8)",
+      borderRadius: 4
+    }]
+  }, { indexAxis: 'y', plugins: { legend: { display:false } }, scales: { x: { grid:{ color:"rgba(255,255,255,0.05)" } }, y: { grid:{ display:false } } } });
+}
+
+document.querySelectorAll('.stats-filters .chip').forEach(chip => {
+  chip.addEventListener('click', (e) => {
+    document.querySelectorAll('.stats-filters .chip').forEach(c => c.classList.remove('active'));
+    e.target.classList.add('active');
+    loadStatistics(e.target.dataset.range);
+  });
+});
+
+const typeSelect = document.getElementById("statsIncomeType");
+if (typeSelect) {
+  typeSelect.addEventListener("change", () => {
+    renderStatisticsUI();
+  });
 }
 
 function renderChart(canvasId, type, data, options = {}) {

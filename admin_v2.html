@@ -185,15 +185,21 @@
         <!-- ESTADÍSTICAS (FASE 8) -->
         <div class="view" id="view-estadisticas" style="display:none;">
           
-          <div class="stats-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 24px;">
+          <div class="stats-header" style="display:flex; flex-wrap:wrap; gap:16px; justify-content:space-between; align-items:center; margin-bottom: 24px;">
             <div>
               <h2 style="margin:0; font-size:24px;">Rendimiento del Negocio</h2>
-              <p class="muted" style="margin:4px 0 0;">Ingresos netos limpios y métricas clave.</p>
+              <p class="muted" style="margin:4px 0 0;">Ingresos y métricas clave.</p>
             </div>
-            <div class="stats-filters" style="display:flex; gap:8px; background:var(--bg-card); padding:4px; border-radius:8px; border:1px solid var(--border);">
-              <button class="chip active" data-range="7">7 Días</button>
-              <button class="chip" data-range="30">30 Días</button>
-              <button class="chip" data-range="365">1 Año</button>
+            <div style="display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
+              <select id="statsIncomeType" class="input" style="padding:4px 10px; height:34px; font-size:12px; width:auto; border-radius:8px;">
+                <option value="total">Ingresos Totales (Precio real)</option>
+                <option value="deposit">Ingresos por Señas (Online)</option>
+              </select>
+              <div class="stats-filters" style="display:flex; gap:8px; background:var(--bg-card); padding:4px; border-radius:8px; border:1px solid var(--border);">
+                <button class="chip active" data-range="7">7 Días</button>
+                <button class="chip" data-range="30">30 Días</button>
+                <button class="chip" data-range="365">1 Año</button>
+              </div>
             </div>
           </div>
 
