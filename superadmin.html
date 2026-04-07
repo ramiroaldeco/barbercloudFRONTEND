@@ -339,6 +339,18 @@
   function setToken(t) { localStorage.setItem(KEY, t); }
   function clearToken() { localStorage.removeItem(KEY); }
 
+  function logout(expired = false) {
+    clearToken();
+    document.getElementById("dashboard").style.display = "none";
+    document.getElementById("loginScreen").style.display = "flex";
+    document.getElementById("passInput").value = "";
+    if (expired) {
+      document.getElementById("loginError").textContent = "La sesión expiró. Ingresá nuevamente.";
+    } else {
+      document.getElementById("loginError").textContent = "";
+    }
+  }
+
   async function apiFetch(path, opts = {}) {
     const token = getToken();
     const res = await fetch(API + path, {
@@ -351,7 +363,13 @@
       body: opts.body ? JSON.stringify(opts.body) : undefined
     });
     const json = await res.json();
-    if (!res.ok) throw new Error(json.error || res.statusText);
+    if (!res.ok) {
+      if (res.status === 401 && path !== "/superadmin/login") {
+        logout(true);
+        throw new Error("Sesión expirada.");
+      }
+      throw new Error(json.error || res.statusText);
+    }
     return json;
   }
 
@@ -373,12 +391,7 @@
     }
   }
 
-  document.getElementById("btnLogout").addEventListener("click", () => {
-    clearToken();
-    document.getElementById("dashboard").style.display = "none";
-    document.getElementById("loginScreen").style.display = "flex";
-    document.getElementById("passInput").value = "";
-  });
+  document.getElementById("btnLogout").addEventListener("click", () => logout(false));
 
   // ── AUTO-LOGIN si hay token guardado ──────────
   if (getToken()) showDashboard();
