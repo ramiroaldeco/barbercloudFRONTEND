@@ -663,41 +663,40 @@ a { color: inherit; text-decoration: none; }
 
 /* ═══════ RESPONSIVE ═══════ */
 @media (max-width: 899px) {
+  /* En la landing NO necesitamos hamburguesa: los botones CTA quedan directamente visibles */
   .nav-links { display: none; }
-  .nav-toggle { display: flex; }
-  .nav-links.open {
-    display: flex;
-    flex-direction: column;
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
-    background: rgba(6,10,24,0.98);
-    backdrop-filter: blur(16px);
-    padding: 1.5rem;
-    gap: 1rem;
-    border-bottom: 1px solid var(--border);
-  }
+  .nav-toggle { display: none; }  /* ← OCULTAR hamburguesa en landing mobile */
 
-  /* ── Mobile nav: mostrar "Ingresar" + "Probar gratis" de forma compacta ── */
-  .nav-actions .btn-ghost {
-    display: inline-flex;
-    font-size: 0.78rem;
-    padding: 0.42rem 0.85rem;
-    color: var(--text-muted);
-    border: 1px solid var(--border);
-    border-radius: 999px;
-  }
-  .nav-actions .btn-primary {
-    font-size: 0.78rem;
-    padding: 0.42rem 0.85rem;
-  }
-  /* Asegurar que logo + botones + hamburguesa nunca se pisen */
+  /* nav-content: logo a la izquierda, botones a la derecha, sin wrap */
   .nav-content {
     gap: 0.5rem;
     flex-wrap: nowrap;
+    align-items: center;
   }
-  .logo-text { font-size: 1rem; }
+
+  /* Logo compacto para dejar espacio a los botones */
+  .logo-img { width: 28px; height: 28px; }
+  .logo-text { font-size: 0.92rem; }
+
+  /* Botones muy compactos en mobile — caben perfectamente */
+  .nav-actions {
+    flex-shrink: 0;
+    gap: 0.35rem;
+  }
+  .nav-actions .btn-ghost {
+    display: inline-flex;
+    font-size: 0.75rem;
+    padding: 0.38rem 0.75rem;
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .nav-actions .btn-primary {
+    font-size: 0.75rem;
+    padding: 0.38rem 0.75rem;
+    white-space: nowrap;
+  }
 
   .hero { padding: 8rem 0 4rem; }
   .hero-visual { grid-template-columns: 1fr; }
