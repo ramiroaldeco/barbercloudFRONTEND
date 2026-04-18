@@ -513,6 +513,10 @@ function openLogin() {
 }
 function closeLogin() {
   if (loginBackdrop) loginBackdrop.style.display = "none";
+  // Si el usuario cierra el login sin haberse logueado, volver a landing
+  if (!getToken()) {
+    window.location.replace("./index.html");
+  }
 }
 
 btnOpenLogin?.addEventListener("click", openLogin);
@@ -561,8 +565,14 @@ async function loadShopHeader() {
   try {
     const data = await apiGet("/barbershops/mine");
 
-    safeText("shopName", data.name || "BarberCloud");
-    safeText("shopCity", data.city || "Admin");
+    // Si la API devuelve error de barbería no asociada, redirigir a signup
+    if (!data || !data.id) {
+      window.location.replace("./signup.html");
+      return;
+    }
+
+    safeText("shopName", data.name || "");
+    safeText("shopCity", data.city || "");
     // Identidad (Logo)
     const avatarEl = $("shopAvatar");
     if (avatarEl) {
@@ -571,7 +581,7 @@ async function loadShopHeader() {
         avatarEl.innerHTML = `<img src="${data.logoBase64}" alt="Logo" style="width:100%; height:100%; object-fit:cover; border-radius:inherit;" />`;
       } else {
         avatarEl.style.padding = "";
-        const initial = (data.name || "B").trim().charAt(0).toUpperCase();
+        const initial = (data.name || "?").trim().charAt(0).toUpperCase();
         avatarEl.innerHTML = initial;
       }
     }
@@ -582,7 +592,15 @@ async function loadShopHeader() {
     const bar = $("setupBar");
     if (bar) bar.style.width = `${pct}%`;
   } catch (e) {
-    console.warn("No pude cargar barbería (mine):", e.message);
+    // Si el error es falta de barbería asociada → mandar a signup
+    const msg = e.message || "";
+    if (msg.includes("barbería") || msg.includes("barbershop") || msg.includes("asociada") || msg.includes("404")) {
+      clearToken(); // limpiar token para no entrar en loop
+      window.location.replace("./signup.html");
+      return;
+    }
+    // Otros errores (red, 401 por token expirado): solo loguear
+    console.warn("No pude cargar barbería (mine):", msg);
   } finally {
     // Ocultar wake-up overlay independientemente del resultado
     if (typeof window._hideWakeup === "function") window._hideWakeup();
@@ -2279,8 +2297,18 @@ document.addEventListener("click", (e) => {
 
 // init
 (async function init() {
-  if (!getToken()) openLogin();
+  // Sin token → redirect a landing. El usuario no debe ver el panel nunca.
+  if (!getToken()) {
+    window.location.replace("./index.html");
+    return;
+  }
 
-  await loadShopHeader();
+  // Con token: cargar datos de la barbería. Si no tiene barbería asociada → signup.
+  try {
+    await loadShopHeader();
+  } catch (e) {
+    // loadShopHeader ya tiene su propio catch, así que esto es defensa extra
+  }
+
   showView(getRoute());
 })();
