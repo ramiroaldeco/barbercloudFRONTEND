@@ -231,6 +231,15 @@ async function renderSlotsAvailable() {
   }
 }
 
+function fmtDateShort(dateStr) {
+  if (!dateStr) return "";
+  try {
+    const [y, m, d] = String(dateStr).substring(0, 10).split("-");
+    if (!y || !m || !d) return dateStr;
+    return `${d}/${m}/${y.slice(2)}`;
+  } catch { return dateStr; }
+}
+
 function updateSummary() {
   const s = state.services.find(x => x.id === Number($("serviceSelect")?.value));
   const b = state.members.find(x => x.id === Number($("barberSelect")?.value));
@@ -239,7 +248,7 @@ function updateSummary() {
 
   safeText("sumService", s ? `${s.name} ($${s.price})` : "—");
   safeText("sumBarber", b ? b.name : "—");
-  safeText("sumDateTime", time ? `${date} a las ${time} hs` : "—");
+  safeText("sumDateTime", time ? `${fmtDateShort(date)} a las ${time} hs` : "—");
 
   if (s) {
     const pct = s.depositPercentage ?? state.barbershop?.defaultDepositPercentage ?? 15;
@@ -249,6 +258,7 @@ function updateSummary() {
     safeText("sumDeposit", `$${total}`);
   }
 }
+
 
 // =====================
 // STEP NAVIGATION
@@ -332,7 +342,17 @@ async function handleBook() {
        succBox.style.border = "1px solid #eab308";
        succBox.style.display = "block";
        
-       $("mpCheckoutBtn").style.display = "block";
+       $("mpCheckoutWrapper").style.display = "block";
+       
+       // Ocultar hint cuando el usuario interactúa con el área de pago
+       const hintEl = document.getElementById("mpHint");
+       const wrapperEl = document.getElementById("mpCheckoutWrapper");
+       if (wrapperEl && hintEl) {
+         wrapperEl.addEventListener("click", () => {
+           hintEl.style.opacity = "0";
+           setTimeout(() => { hintEl.style.display = "none"; }, 400);
+         }, { once: true });
+       }
        
        // Inicializar SDk y renderizar Checkout Button embebido
        const mp = new MercadoPago(resp.mpPublicKey, { locale: 'es-AR' });
@@ -357,12 +377,13 @@ async function handleBook() {
                 succBox.style.borderColor = "#f87171";
                 succBox.style.backgroundColor = "#fef2f2";
                 
-                // Ocultar e invalidar el checkout de MP
-                const mpBtn = $("mpCheckoutBtn");
-                if (mpBtn) {
-                   mpBtn.style.display = "none";
-                   mpBtn.innerHTML = "";
-                }
+                 // Ocultar e invalidar el checkout de MP
+                 const mpWrapper = $("mpCheckoutWrapper");
+                 if (mpWrapper) {
+                   mpWrapper.style.display = "none";
+                   const mpBtn = $("mpCheckoutBtn");
+                   if (mpBtn) mpBtn.innerHTML = "";
+                 }
              } else {
                 const totalSecs = Math.floor(diff / 1000);
                 const m = Math.floor(totalSecs / 60);

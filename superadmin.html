@@ -194,9 +194,10 @@
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      overflow: hidden;
+      overflow-x: auto;          /* ← fix mobile horizontal scroll */
+      -webkit-overflow-scrolling: touch;
     }
-    table { width: 100%; border-collapse: collapse; }
+    table { width: 100%; border-collapse: collapse; min-width: 600px; }
     th {
       background: var(--surface2);
       border-bottom: 1px solid var(--border);
@@ -207,6 +208,7 @@
       padding: 12px 16px;
       text-align: left;
       text-transform: uppercase;
+      white-space: nowrap;
     }
     td {
       border-bottom: 1px solid var(--border);
@@ -229,7 +231,7 @@
     .pill-muted { background: rgba(100,116,139,0.15); color: var(--muted); }
 
     /* ── FEE EDITOR ──────────────────────────── */
-    .fee-cell { display: flex; align-items: center; gap: 8px; }
+    .fee-cell { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     .fee-input {
       background: var(--surface2);
       border: 1px solid var(--border);
@@ -237,7 +239,7 @@
       color: var(--text);
       font-size: 13px;
       padding: 5px 9px;
-      width: 90px;
+      width: 80px;
       outline: none;
       font-family: 'Inter', sans-serif;
     }
@@ -252,6 +254,7 @@
       font-weight: 600;
       padding: 5px 12px;
       transition: background 0.2s;
+      white-space: nowrap;
     }
     .btn-save-fee:hover { background: rgba(56,189,248,0.22); }
     .fee-saved {
@@ -269,6 +272,16 @@
       height: 18px;
     }
     @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+    /* ── MOBILE RESPONSIVE ───────────────────── */
+    @media (max-width: 600px) {
+      .topbar { padding: 12px 16px; }
+      .topbar h2 { font-size: 0.9rem; }
+      .main { padding: 16px 12px; }
+      .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+      .stat-value { font-size: 1.5rem; }
+      .login-card { padding: 32px 20px; }
+    }
   </style>
 </head>
 <body>
@@ -335,20 +348,27 @@
   const API = "https://barbercloud.onrender.com/api";
   const KEY = "bc_superadmin_token";
 
+  // ── Guard anti-doble-logout ──────────────────────────────────
+  // Cuando loadStats y loadShops fallan 401 simultáneamente,
+  // sin este flag se llama a logout() dos veces → race condition en DOM.
+  let isLoggingOut = false;
+
   function getToken() { return localStorage.getItem(KEY); }
   function setToken(t) { localStorage.setItem(KEY, t); }
   function clearToken() { localStorage.removeItem(KEY); }
 
   function logout(expired = false) {
+    if (isLoggingOut) return;       // evitar doble ejecución
+    isLoggingOut = true;
     clearToken();
     document.getElementById("dashboard").style.display = "none";
     document.getElementById("loginScreen").style.display = "flex";
     document.getElementById("passInput").value = "";
-    if (expired) {
-      document.getElementById("loginError").textContent = "La sesión expiró. Ingresá nuevamente.";
-    } else {
-      document.getElementById("loginError").textContent = "";
-    }
+    document.getElementById("loginError").textContent = expired
+      ? "La sesión expiró. Ingresá nuevamente."
+      : "";
+    // Reset flag tras el tick para permitir futuros logins
+    setTimeout(() => { isLoggingOut = false; }, 500);
   }
 
   async function apiFetch(path, opts = {}) {
@@ -375,7 +395,9 @@
 
   // ── LOGIN ─────────────────────────────────────
   document.getElementById("btnLogin").addEventListener("click", login);
-  document.getElementById("passInput").addEventListener("keydown", e => { if (e.key === "Enter") login(); });
+  document.getElementById("passInput").addEventListener("keydown", e => {
+    if (e.key === "Enter") login();
+  });
 
   async function login() {
     const pass = document.getElementById("passInput").value.trim();
@@ -393,8 +415,31 @@
 
   document.getElementById("btnLogout").addEventListener("click", () => logout(false));
 
-  // ── AUTO-LOGIN si hay token guardado ──────────
-  if (getToken()) showDashboard();
+  // ── AUTO-LOGIN: verificar token ANTES de mostrar dashboard ──────
+  // Soluciona el 401 en consola al entrar con token expirado:
+  // Antes se llamaba showDashboard() directamente → loadStats + loadShops
+  // disparaban 401 simultáneamente → doble logout race condition.
+  // Ahora verificamos primero y solo abrimos el dashboard si el token es válido.
+  async function tryAutoLogin() {
+    if (!getToken()) return; // Sin token → mostrar pantalla de login directamente
+    try {
+      // /stats es liviana y protegida — si el token expiró lanza 401
+      // y apiFetch ya llama a logout(true) dentro del catch
+      await apiFetch("/superadmin/stats");
+      // Token válido: mostrar dashboard (loadStats se llama dentro de showDashboard también)
+      document.getElementById("loginScreen").style.display = "none";
+      document.getElementById("dashboard").style.display = "block";
+      loadStats();
+      loadShops();
+    } catch (err) {
+      // Si fue 401 → logout ya fue invocado por apiFetch
+      // Si fue otro error de red → conservar pantalla de login limpia
+      if (!isLoggingOut) {
+        document.getElementById("loginError").textContent = "";
+      }
+    }
+  }
+  tryAutoLogin();
 
   async function showDashboard() {
     document.getElementById("loginScreen").style.display = "none";
@@ -455,7 +500,7 @@
                 <span class="fee-saved" id="feeSaved_${shop.id}">✓ Guardado</span>
               </div>
             </td>
-            <td style="color:var(--muted);font-size:12px">${date}</td>
+            <td style="color:var(--muted);font-size:12px;white-space:nowrap">${date}</td>
           </tr>
         `;
       }).join("");

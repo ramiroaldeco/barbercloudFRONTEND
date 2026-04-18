@@ -6,19 +6,16 @@
   <title>BarberCloud - Crear cuenta</title>
 
   <link rel="stylesheet" href="./styles.css?v=13rollback" />
-  <!-- Si ya usás components.css en el resto del sitio, dejalo así (recomendado). -->
   <link rel="stylesheet" href="./components.css?v=13rollback" />
 
-  <!-- Estilos solo para Signup (no rompe nada del resto) -->
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
     :root {
       --bc-bg: #090e14;
-      --bc-panel: rgba(13, 19, 31, 0.65);
-      --bc-panel2: rgba(15, 23, 42, 0.72);
+      --bc-panel: rgba(13, 19, 31, 0.72);
       --bc-border: rgba(255, 255, 255, 0.08);
-      --bc-border-h: rgba(255, 255, 255, 0.16);
+      --bc-border-h: rgba(255, 255, 255, 0.18);
       --bc-text: #f8fafc;
       --bc-muted: #94a3b8;
       --bc-cyan: #3b82f6;
@@ -29,21 +26,21 @@
       --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
-    * {
+    *, *::before, *::after {
       font-family: 'Inter', sans-serif;
       box-sizing: border-box;
       letter-spacing: -0.01em;
       -webkit-font-smoothing: antialiased;
     }
 
-    body.app {
+    body {
       background-color: var(--bc-bg);
       color: var(--bc-text);
       min-height: 100vh;
       margin: 0;
     }
 
-    body.app::before {
+    body::before {
       content: "";
       position: fixed;
       top: 0; left: 0; width: 100%; height: 100%;
@@ -53,341 +50,286 @@
       pointer-events: none;
     }
 
-    /* Layout */
-    .auth-shell{
+    /* ── SHELL ─────────────────────────────────── */
+    .signup-shell {
       min-height: 100vh;
-      display: grid;
-      place-items: center;
-      padding: 28px 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 16px 60px;
     }
 
-    .auth-container{
-      width: min(1060px, 100%);
-      display: grid;
-      gap: 18px;
-      align-items: start;
-    }
-
-    @media (min-width: 980px){
-      .auth-container{
-        grid-template-columns: minmax(0, .92fr) minmax(0, 1.08fr);
-        gap: 32px;
-      }
-    }
-
-    /* Left info panel (inspiración wizard) */
-    .auth-side{
-      border-radius: var(--bc-radius);
-      background: var(--bc-panel);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border: 1px solid var(--bc-border);
-      box-shadow: var(--bc-shadow);
-      padding: 32px 28px;
-      position: relative;
-    }
-
-    .brand-row{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap: 12px;
-      margin-bottom: 24px;
-    }
-
-    .brand{
-      display:flex;
-      align-items:center;
-      gap: 12px;
-      text-decoration:none;
+    /* ── BRAND HEADER ──────────────────────────── */
+    .signup-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 32px;
+      text-decoration: none;
       color: var(--bc-text);
-      transition: var(--transition);
     }
-    
-    .brand:hover {
-      opacity: 0.8;
-    }
-
-    .brand-mark{
-      height: 36px;
-      width: auto;
-      border-radius: 6px;
+    .signup-brand img {
+      height: 32px;
       object-fit: contain;
     }
-
-    .brand-name{
+    .signup-brand-name {
       font-weight: 800;
-      font-size: 1.25rem;
+      font-size: 1.15rem;
       letter-spacing: -0.02em;
     }
 
-    .step-pill{
-      display:inline-flex;
-      align-items:center;
-      padding: 6px 14px;
-      border-radius: 999px;
-      border: 1px solid rgba(59, 130, 246, 0.4);
-      background: var(--bc-cyan-soft);
-      color: #fff;
-      font-size: .80rem;
-      font-weight: 600;
-      white-space: nowrap;
+    /* ── STEPPER ────────────────────────────────── */
+    .signup-stepper {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      margin-bottom: 28px;
+      max-width: 380px;
+      width: 100%;
     }
-
-    .auth-side h1{
-      margin: 0 0 12px 0;
-      font-size: clamp(1.6rem, 2.4vw, 2.1rem);
-      line-height: 1.2;
-      font-weight: 700;
+    .ss-step {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+      flex: 1;
+      position: relative;
     }
-
-    .auth-side p{
-      margin: 0;
+    .ss-step::after {
+      content: "";
+      position: absolute;
+      top: 14px;
+      left: 55%;
+      right: -45%;
+      height: 2px;
+      background: var(--bc-border);
+      z-index: 0;
+    }
+    .ss-step:last-child::after { display: none; }
+    .ss-step-dot {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700;
+      border: 2px solid var(--bc-border);
+      background: var(--bc-bg);
       color: var(--bc-muted);
-      line-height: 1.6;
-    }
-
-    .side-list{
-      margin-top: 24px;
-      display:grid;
-      gap: 12px;
-    }
-
-    .side-item{
-      display:flex;
-      gap: 14px;
-      align-items:flex-start;
-      padding: 16px;
-      border-radius: calc(var(--bc-radius) - 4px);
-      border: 1px solid var(--bc-border);
-      background: rgba(0,0,0,0.25);
+      position: relative; z-index: 1;
       transition: var(--transition);
     }
-    
-    .side-item:hover {
-      border-color: var(--bc-border-h);
-      background: rgba(255,255,255,0.03);
-    }
-
-    .side-dot{
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      font-weight: 700;
-      font-size: 0.9rem;
-      background: var(--bc-cyan-soft);
-      border: 1px solid rgba(59, 130, 246, 0.3);
-      color: var(--bc-cyan);
-      flex: 0 0 auto;
-    }
-
-    .side-item strong{
-      display:block;
-      font-size: .98rem;
-      margin-bottom: 4px;
-      color: var(--bc-text);
-    }
-
-    .side-item span{
-      display:block;
+    .ss-step-label {
+      font-size: 10px;
+      font-weight: 500;
       color: var(--bc-muted);
-      font-size: .90rem;
-      line-height: 1.4;
+      transition: var(--transition);
+      white-space: nowrap;
     }
-
-    .side-note{
-      margin-top: 24px;
-      padding: 14px 16px;
-      border-radius: calc(var(--bc-radius) - 4px);
-      border: 1px solid rgba(59,130,246,.3);
-      background: rgba(59,130,246,.1);
+    .ss-step.is-active .ss-step-dot {
+      border-color: var(--bc-cyan);
+      color: var(--bc-cyan);
+      box-shadow: 0 0 0 4px rgba(59,130,246,0.15);
+    }
+    .ss-step.is-active .ss-step-label { color: var(--bc-text); }
+    .ss-step.is-done .ss-step-dot {
+      background: var(--bc-cyan);
+      border-color: var(--bc-cyan);
       color: #fff;
-      font-size: .90rem;
-      line-height: 1.5;
     }
+    .ss-step.is-done::after { background: var(--bc-cyan); }
 
-    /* Main card (form) */
-    .auth-card{
-      border-radius: var(--bc-radius);
+    /* ── WIZARD CARD ─────────────────────────────── */
+    .signup-card {
+      width: min(520px, 100%);
       background: var(--bc-panel);
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
       border: 1px solid var(--bc-border);
+      border-radius: var(--bc-radius);
       box-shadow: var(--bc-shadow);
       padding: 32px 28px;
     }
 
-    .auth-head{
-      display:flex;
-      align-items:flex-start;
-      justify-content:space-between;
-      gap: 12px;
+    /* ── WIZARD STEPS ───────────────────────────── */
+    .signup-step { display: none; animation: su-fadeIn 0.35s ease forwards; }
+    .signup-step.is-visible { display: block; }
+    @keyframes su-fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── STEP HEADINGS ──────────────────────────── */
+    .step-heading {
+      margin-bottom: 6px;
+      font-size: 1.35rem;
+      font-weight: 700;
+    }
+    .step-sub {
+      color: var(--bc-muted);
+      font-size: 0.92rem;
+      line-height: 1.55;
       margin-bottom: 24px;
     }
 
-    .auth-head h2{
-      margin: 0;
-      font-size: 1.4rem;
-      font-weight: 700;
-    }
-
-    .auth-sub{
-      margin: 8px 0 0 0;
-      color: var(--bc-muted);
-      line-height: 1.55;
-      font-size: .95rem;
-    }
-
-    .section-tag{
-      display:inline-flex;
-      align-items:center;
-      gap:8px;
-      padding: 6px 12px;
-      border-radius: 999px;
+    /* ── INTRO BULLETS (paso 1) ─────────────────── */
+    .intro-list { display: grid; gap: 12px; margin-bottom: 24px; }
+    .intro-item {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      padding: 14px 16px;
+      border-radius: 12px;
       border: 1px solid var(--bc-border);
-      background: rgba(0,0,0,0.3);
-      color: var(--bc-text);
-      font-size: .80rem;
-      white-space: nowrap;
+      background: rgba(0,0,0,0.2);
+      transition: var(--transition);
+    }
+    .intro-item:hover { border-color: var(--bc-border-h); }
+    .intro-dot {
+      width: 30px; height: 30px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 0.85rem;
+      background: var(--bc-cyan-soft);
+      border: 1px solid rgba(59,130,246,0.3);
+      color: var(--bc-cyan);
+      flex-shrink: 0;
+    }
+    .intro-item strong { display: block; font-size: 0.95rem; margin-bottom: 3px; }
+    .intro-item span { color: var(--bc-muted); font-size: 0.88rem; line-height: 1.4; }
+
+    .intro-note {
+      margin-top: 4px;
+      padding: 12px 14px;
+      border-radius: 10px;
+      border: 1px solid rgba(59,130,246,0.3);
+      background: rgba(59,130,246,0.1);
+      color: rgba(248,250,252,0.9);
+      font-size: 0.88rem;
+      line-height: 1.5;
+      margin-bottom: 24px;
     }
 
-    /* Form */
-    #signupForm{
-      display:grid;
-      gap: 16px;
-    }
-
-    .form-block{
+    /* ── FORM ELEMENTS ──────────────────────────── */
+    .form-section {
+      border: 1px solid var(--bc-border);
+      border-radius: 12px;
+      background: rgba(0,0,0,0.15);
       padding: 16px;
-      border-radius: calc(var(--bc-radius) - 2px);
-      border: 1px solid var(--bc-border);
-      background: rgba(0,0,0,.15);
+      margin-bottom: 16px;
     }
-
-    .form-title{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap: 10px;
-      margin-bottom: 10px;
+    .form-section-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
     }
-
-    .form-title h3{
-      margin: 0;
-      font-size: 1rem;
-    }
-
-    .req{
-      display:inline-flex;
-      align-items:center;
-      gap: 6px;
-      padding: 6px 10px;
+    .form-section-title h3 { margin: 0; font-size: 0.95rem; font-weight: 600; }
+    .fs-tag {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
       border-radius: 999px;
       border: 1px solid rgba(56,189,248,.22);
       background: rgba(56,189,248,.08);
-      color: rgba(226,232,240,.92);
-      font-size: .82rem;
-      white-space: nowrap;
+      color: rgba(226,232,240,.9);
+      font-size: 0.75rem;
+      font-weight: 600;
     }
 
-    .grid{
-      display:grid;
-      gap: 12px;
-    }
-
-    @media (min-width: 720px){
-      .grid.two{
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-    }
-
-    .field{
-      display:flex;
-      flex-direction:column;
-      gap: 6px;
-    }
-
-    .field label{
-      font-size: .78rem;
+    .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+    .field:last-child { margin-bottom: 0; }
+    .field label {
+      font-size: 0.75rem;
       font-weight: 650;
       letter-spacing: .08em;
       text-transform: uppercase;
-      color: rgba(226,232,240,.82);
+      color: rgba(226,232,240,.8);
     }
-
-    .field input{
+    .field input {
       width: 100%;
-      padding: 12px 16px;
-      border-radius: 12px;
+      padding: 11px 14px;
+      border-radius: 10px;
       border: 1px solid var(--bc-border);
-      background: rgba(0,0,0,0.3);
+      background: rgba(0,0,0,0.28);
       color: var(--bc-text);
       outline: none;
-      font-size: .96rem;
+      font-size: 0.95rem;
       transition: var(--transition);
     }
-
-    .field input::placeholder{
-      color: var(--bc-muted);
-    }
-
+    .field input::placeholder { color: var(--bc-muted); }
     .field input:hover { border-color: var(--bc-border-h); }
-
-    .field input:focus{
+    .field input:focus {
       border-color: var(--bc-cyan);
-      box-shadow: 0 0 0 3px rgba(59,130,246,0.2);
-      background: rgba(0,0,0,0.15);
+      box-shadow: 0 0 0 3px rgba(59,130,246,0.18);
+      background: rgba(0,0,0,0.12);
+    }
+    .field .helper { color: var(--bc-muted); font-size: 0.78rem; line-height: 1.4; margin-top: 2px; }
+
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 440px) { .field-row { grid-template-columns: 1fr; } }
+
+    /* ── PASO 3: RESUMEN ────────────────────────── */
+    .summary-box {
+      border: 1px solid var(--bc-border);
+      border-radius: 12px;
+      background: rgba(0,0,0,0.18);
+      padding: 16px;
+      margin-bottom: 20px;
+    }
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 8px;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--bc-border);
+      font-size: 0.9rem;
+    }
+    .summary-row:last-child { border-bottom: none; }
+    .summary-row .sr-label { color: var(--bc-muted); font-size: 0.82rem; white-space: nowrap; }
+    .summary-row .sr-value { font-weight: 600; text-align: right; word-break: break-all; }
+
+    .summary-ok {
+      margin-bottom: 20px;
+      padding: 12px 14px;
+      border-radius: 10px;
+      border: 1px solid rgba(16,185,129,0.3);
+      background: rgba(16,185,129,0.08);
+      color: #6EE7B7;
+      font-size: 0.88rem;
+      line-height: 1.5;
     }
 
-    .helper{
-      margin-top: 4px;
-      color: var(--bc-muted);
-      font-size: .80rem;
-      line-height: 1.4;
+    /* ── ACTIONS BUTTONS ────────────────────────── */
+    .step-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-top: 20px;
     }
 
-    .divider{
-      height: 1px;
-      background: var(--bc-border);
-      margin: 8px 0;
+    .btn-next, .btn-create, .btn-back {
+      border-radius: 10px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+      padding: 13px 20px;
     }
 
-    .actions{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap: 16px;
-      flex-wrap: wrap;
-      margin-top: 8px;
-    }
-
-    #btnCreate{
+    .btn-next, .btn-create {
+      flex: 1;
       background: linear-gradient(180deg, var(--bc-cyan), var(--bc-cyan-hover));
       border: 1px solid rgba(59,130,246,0.4);
       color: #fff;
-      font-weight: 600;
-      border-radius: 12px;
-      padding: 14px 24px;
-      min-width: 200px;
-      font-size: 1rem;
-      cursor: pointer;
-      transition: var(--transition);
       box-shadow: 0 4px 12px rgba(59,130,246,0.25);
     }
-    
-    #btnCreate:hover:not(:disabled) {
+    .btn-next:hover:not(:disabled), .btn-create:hover:not(:disabled) {
       transform: translateY(-2px);
       box-shadow: 0 6px 16px rgba(59,130,246,0.4);
     }
-    
-    #btnCreate:active:not(:disabled) {
-      transform: scale(0.98);
-    }
-    
-    #btnCreate:disabled {
+    .btn-next:active, .btn-create:active { transform: scale(0.98); }
+    .btn-next:disabled, .btn-create:disabled {
       background: rgba(255,255,255,0.04);
       border-color: transparent;
       color: var(--bc-muted);
@@ -395,9 +337,16 @@
       cursor: not-allowed;
     }
 
-    /* Spinner Animación */
+    .btn-back {
+      background: transparent;
+      border: 1px solid var(--bc-border);
+      color: var(--bc-muted);
+      padding: 13px 16px;
+    }
+    .btn-back:hover { border-color: var(--bc-border-h); color: var(--bc-text); }
+
+    /* Loading spinner */
     @keyframes spin { 100% { transform: rotate(360deg); } }
-    
     .is-loading {
       position: relative;
       color: transparent !important;
@@ -406,91 +355,97 @@
     .is-loading::after {
       content: "";
       position: absolute;
-      width: 18px;
-      height: 18px;
+      width: 18px; height: 18px;
       border: 2px solid rgba(255,255,255,0.3);
       border-top-color: #fff;
       border-radius: 50%;
       animation: spin 0.8s linear infinite;
-      left: 50%;
-      top: 50%;
-      margin-left: -9px;
-      margin-top: -9px;
+      left: 50%; top: 50%;
+      margin-left: -9px; margin-top: -9px;
     }
-    
-    .msg {
+
+    /* Mensaje de error/éxito */
+    #msg {
       margin: 0;
-      color: var(--bc-muted);
-      font-size: .92rem;
+      font-size: 0.88rem;
       line-height: 1.5;
+      min-height: 20px;
     }
 
-    .login-link{
-      margin: 0;
+    .login-link {
+      margin-top: 16px;
+      text-align: center;
       color: var(--bc-muted);
-      font-size: .92rem;
+      font-size: 0.88rem;
     }
-
-    .login-link a{
-      color: rgba(56,189,248,.92);
+    .login-link a {
+      color: rgba(56,189,248,.9);
       text-decoration: none;
-      border-bottom: 1px solid rgba(56,189,248,.30);
+      border-bottom: 1px solid rgba(56,189,248,.3);
     }
+    .login-link a:hover { border-bottom-color: rgba(56,189,248,.6); }
 
-    .login-link a:hover{
-      border-bottom-color: rgba(56,189,248,.60);
-    }
-
-    /* Mobile: que el botón ocupe todo */
-    @media (max-width: 560px){
-      #btnCreate{
-        width: 100%;
-      }
-      .actions{
-        width: 100%;
-      }
+    /* Mobile: full-width buttons */
+    @media (max-width: 480px) {
+      .signup-shell { padding: 20px 12px 50px; }
+      .signup-card { padding: 24px 18px; }
+      .step-heading { font-size: 1.15rem; }
+      .btn-next, .btn-create { padding: 13px 16px; }
+      .signup-stepper { max-width: 100%; }
     }
   </style>
 </head>
 
-<body class="app">
-  <div class="auth-shell">
-    <div class="auth-container">
+<body>
+  <div class="signup-shell">
 
-      <!-- Panel izquierdo (inspiración “configurá tu empresa”) -->
-      <aside class="auth-side" aria-label="Resumen de configuración">
-        <div class="brand-row">
-          <a class="brand" href="./index.html" aria-label="Volver al inicio">
-            <img src="./LogoBarberCloud.png" alt="BarberCloud Logo" class="brand-mark" />
-            <span class="brand-name">BarberCloud</span>
-          </a>
+    <!-- LOGO -->
+    <a class="signup-brand" href="./index.html" aria-label="Volver al inicio">
+      <img src="./LogoBarberCloud.png" alt="BarberCloud Logo" />
+      <span class="signup-brand-name">BarberCloud</span>
+    </a>
 
-          <span class="step-pill">Configuración inicial</span>
-        </div>
+    <!-- STEPPER -->
+    <div class="signup-stepper" id="signupStepper">
+      <div class="ss-step is-active" id="ss1">
+        <div class="ss-step-dot">1</div>
+        <div class="ss-step-label">Inicio</div>
+      </div>
+      <div class="ss-step" id="ss2">
+        <div class="ss-step-dot">2</div>
+        <div class="ss-step-label">Datos</div>
+      </div>
+      <div class="ss-step" id="ss3">
+        <div class="ss-step-dot">3</div>
+        <div class="ss-step-label">Confirmar</div>
+      </div>
+    </div>
 
-        <h1>Creá tu empresa en minutos</h1>
-        <p>
-          Cargá los datos básicos para empezar a recibir turnos. Después vas a poder
-          ajustar seña, horarios, servicios y todo lo demás desde el panel.
-        </p>
+    <!-- CARD -->
+    <div class="signup-card">
 
-        <div class="side-list">
-          <div class="side-item">
-            <span class="side-dot">1</span>
+      <!-- ── PASO 1: Presentación ── -->
+      <div class="signup-step is-visible" id="suStep1">
+        <h2 class="step-heading">Creá tu barbería en minutos</h2>
+        <p class="step-sub">Cargá los datos básicos y empezá a recibir turnos hoy.</p>
+
+        <div class="intro-list">
+          <div class="intro-item">
+            <span class="intro-dot">1</span>
             <div>
               <strong>Datos del negocio</strong>
               <span>Nombre, ciudad y datos opcionales.</span>
             </div>
           </div>
-          <div class="side-item">
-            <span class="side-dot">2</span>
+          <div class="intro-item">
+            <span class="intro-dot">2</span>
             <div>
               <strong>Usuario dueño</strong>
               <span>Acceso al panel para administrar turnos.</span>
             </div>
           </div>
-          <div class="side-item">
-            <span class="side-dot">✓</span>
+          <div class="intro-item">
+            <span class="intro-dot">✓</span>
             <div>
               <strong>Listo para vender turnos</strong>
               <span>Link para compartir y agenda ordenada.</span>
@@ -498,112 +453,203 @@
           </div>
         </div>
 
-        <div class="side-note">
-          Recomendado: empezar con seña del <b>15%</b> para reducir cancelaciones. Podés cambiarlo después.
-        </div>
-      </aside>
-
-      <!-- Card principal (form) -->
-      <main class="auth-card">
-        <div class="auth-head">
-          <div>
-            <h2>Crear cuenta gratis</h2>
-            <p class="auth-sub">
-              Creás tu barbería + tu usuario dueño en 1 paso. Después podés ajustar la seña (recomendado 15%).
-            </p>
-          </div>
-          <span class="section-tag">1 paso · alta rápida</span>
+        <div class="intro-note">
+          💡 Recomendado: empezar con seña del <b>15%</b> para reducir cancelaciones. Podés cambiarlo después desde el panel.
         </div>
 
-        <!-- IMPORTANTE: no tocamos el ID del form -->
-        <form id="signupForm">
-          <!-- Bloque: Barbería -->
-          <section class="form-block" aria-label="Datos de la barbería">
-            <div class="form-title">
-              <h3>Datos de la barbería</h3>
-              <span class="req">Obligatorio</span>
-            </div>
+        <div class="step-actions">
+          <button class="btn-next" id="btnGoStep2" type="button">Comenzar →</button>
+        </div>
+      </div>
 
-            <div class="grid">
-              <div class="field">
-                <label>Nombre de la barbería</label>
-                <input name="shopName" placeholder="Barbería ..." required />
-              </div>
-            </div>
+      <!-- ── PASO 2: Formulario ── -->
+      <div class="signup-step" id="suStep2">
+        <h2 class="step-heading">Datos de tu barbería</h2>
+        <p class="step-sub">Completá la información para crear tu cuenta.</p>
 
-            <div class="grid two" style="margin-top:12px;">
+        <!-- IMPORTANTE: mantenemos el ID del form original -->
+        <form id="signupForm" autocomplete="on" novalidate>
+
+          <div class="form-section">
+            <div class="form-section-title">
+              <h3>La barbería</h3>
+              <span class="fs-tag">Obligatorio</span>
+            </div>
+            <div class="field">
+              <label>Nombre de la barbería</label>
+              <input name="shopName" id="f_shopName" placeholder="Ej: Barbería El Corte" required autocomplete="organization" />
+            </div>
+            <div class="field-row">
               <div class="field">
                 <label>Ciudad</label>
-                <input name="city" placeholder="Córdoba" required />
+                <input name="city" id="f_city" placeholder="Córdoba" required autocomplete="address-level2" />
               </div>
-
               <div class="field">
-                <label>Teléfono (opcional)</label>
-                <input name="phone" placeholder="3534..." />
-                <div class="helper">Si lo cargás, queda para contacto/recordatorios.</div>
+                <label>Teléfono <small style="opacity:.6">(opcional)</small></label>
+                <input name="phone" id="f_phone" placeholder="3534..." autocomplete="tel" />
+                <span class="helper">Para contacto y recordatorios.</span>
               </div>
             </div>
-
-            <div class="grid" style="margin-top:12px;">
-              <div class="field">
-                <label>Dirección (opcional)</label>
-                <input name="address" placeholder="San Martín 123" />
-                <div class="helper">Podés completarla más adelante si querés.</div>
-              </div>
+            <div class="field">
+              <label>Dirección <small style="opacity:.6">(opcional)</small></label>
+              <input name="address" id="f_address" placeholder="San Martín 123" autocomplete="street-address" />
             </div>
-          </section>
+          </div>
 
-          <div class="divider"></div>
-
-          <!-- Bloque: Dueño -->
-          <section class="form-block" aria-label="Datos del dueño">
-            <div class="form-title">
-              <h3>Datos del dueño</h3>
-              <span class="req">Obligatorio</span>
+          <div class="form-section">
+            <div class="form-section-title">
+              <h3>El dueño</h3>
+              <span class="fs-tag">Obligatorio</span>
             </div>
-
-            <div class="grid two">
+            <div class="field-row">
               <div class="field">
                 <label>Nombre y apellido</label>
-                <input name="ownerName" placeholder="Juan Pérez" required />
+                <input name="ownerName" id="f_ownerName" placeholder="Juan Pérez" required autocomplete="name" />
               </div>
-
               <div class="field">
                 <label>Email</label>
-                <input name="email" type="email" placeholder="juan@barberia.com" required />
+                <input name="email" id="f_email" type="email" placeholder="juan@mail.com" required autocomplete="email" />
               </div>
             </div>
-
-            <div class="grid" style="margin-top:12px;">
-              <div class="field">
-                <label>Contraseña</label>
-                <input name="password" type="password" placeholder="Mínimo 6 caracteres" required />
-                <div class="helper">Usala para entrar al panel y administrar tu agenda.</div>
-              </div>
+            <div class="field">
+              <label>Contraseña</label>
+              <input name="password" id="f_password" type="password" placeholder="Mínimo 6 caracteres" required autocomplete="new-password" />
+              <span class="helper">Usala para entrar al panel y administrar tu agenda.</span>
             </div>
-          </section>
-
-          <!-- Acciones -->
-          <div class="actions">
-            <button class="btn-primary" type="submit" id="btnCreate">
-              Crear cuenta
-            </button>
-
-            <!-- IMPORTANTE: mantenemos el ID msg -->
-            <p id="msg" class="msg"></p>
-
-           <p class="login-link">
-  ¿Ya tenés cuenta? <a href="./admin_v2.html#/agenda">Ingresar al panel</a>
-</p>
-
-
           </div>
+
         </form>
-      </main>
-    </div>
-  </div>
+
+        <div class="step-actions">
+          <button class="btn-back" id="btnBackStep1" type="button">← Volver</button>
+          <button class="btn-next" id="btnGoStep3" type="button">Revisar →</button>
+        </div>
+      </div>
+
+      <!-- ── PASO 3: Confirmación ── -->
+      <div class="signup-step" id="suStep3">
+        <h2 class="step-heading">Todo listo para crear</h2>
+        <p class="step-sub">Revisá los datos antes de confirmar. Podés editarlos volviendo.</p>
+
+        <div class="summary-box" id="summaryBox">
+          <!-- Se llena por JS -->
+        </div>
+
+        <div class="summary-ok">
+          🚀 Al crear tu barbería vas a obtener un <b>link público</b> para que tus clientes reserven, y acceso completo al panel de administración.
+        </div>
+
+        <div class="step-actions">
+          <button class="btn-back" id="btnBackStep2" type="button">← Editar</button>
+          <button class="btn-create" id="btnCreate" type="button">Crear barbería ✓</button>
+        </div>
+
+        <p id="msg" style="margin-top:12px; text-align:center;"></p>
+        <p class="login-link">¿Ya tenés cuenta? <a href="./admin_v2.html#/agenda">Ingresar al panel</a></p>
+      </div>
+
+    </div><!-- /.signup-card -->
+  </div><!-- /.signup-shell -->
 
   <script src="./config.js"></script>
   <script src="./signup.js" defer></script>
+
+  <script>
+    // ── Wizard navigation ─────────────────────────────────
+    // Maneja los 3 pasos sin tocar la lógica de signup.js
+    // El submit real ocurre solo desde el paso 3 con btnCreate
+
+    const steps = ["suStep1", "suStep2", "suStep3"];
+    const stepDots = ["ss1", "ss2", "ss3"];
+    let currentStep = 1;
+
+    function goToStep(n) {
+      // Validar antes de avanzar del paso 2 al 3
+      if (n === 3 && currentStep === 2) {
+        const form = document.getElementById("signupForm");
+        const shopName = form.shopName?.value.trim();
+        const city = form.city?.value.trim();
+        const ownerName = form.ownerName?.value.trim();
+        const email = form.email?.value.trim();
+        const password = form.password?.value;
+
+        if (!shopName || !city) {
+          highlightEmpty("f_shopName", !shopName);
+          highlightEmpty("f_city", !city);
+          return;
+        }
+        if (!ownerName || !email || !password) {
+          highlightEmpty("f_ownerName", !ownerName);
+          highlightEmpty("f_email", !email);
+          highlightEmpty("f_password", !password);
+          return;
+        }
+        if (password.length < 6) {
+          const p = document.getElementById("f_password");
+          if (p) { p.style.borderColor = "#ef4444"; p.focus(); }
+          return;
+        }
+        fillSummary(form);
+      }
+
+      currentStep = n;
+
+      steps.forEach((id, idx) => {
+        const el = document.getElementById(id);
+        if (el) el.classList.toggle("is-visible", idx + 1 === n);
+      });
+      stepDots.forEach((id, idx) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.classList.toggle("is-active", idx + 1 === n);
+        el.classList.toggle("is-done", idx + 1 < n);
+      });
+
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function highlightEmpty(id, isEmpty) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.style.borderColor = isEmpty ? "#ef4444" : "";
+      el.addEventListener("input", () => { el.style.borderColor = ""; }, { once: true });
+    }
+
+    function escHtml(s) {
+      return String(s ?? "—").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+    }
+
+    function fillSummary(form) {
+      const box = document.getElementById("summaryBox");
+      if (!box) return;
+      const data = {
+        "Barbería": form.shopName?.value || "—",
+        "Ciudad": form.city?.value || "—",
+        "Teléfono": form.phone?.value || "(no cargado)",
+        "Dirección": form.address?.value || "(no cargada)",
+        "Dueño": form.ownerName?.value || "—",
+        "Email": form.email?.value || "—",
+        "Contraseña": "••••••••",
+      };
+      box.innerHTML = Object.entries(data).map(([k, v]) => `
+        <div class="summary-row">
+          <span class="sr-label">${k}</span>
+          <span class="sr-value">${escHtml(v)}</span>
+        </div>
+      `).join("");
+    }
+
+    // Botones de navegación
+    document.getElementById("btnGoStep2")?.addEventListener("click", () => goToStep(2));
+    document.getElementById("btnBackStep1")?.addEventListener("click", () => goToStep(1));
+    document.getElementById("btnGoStep3")?.addEventListener("click", () => goToStep(3));
+    document.getElementById("btnBackStep2")?.addEventListener("click", () => goToStep(2));
+
+    // btnCreate dispara el submit del form (signup.js lo escucha con form.addEventListener("submit"))
+    document.getElementById("btnCreate")?.addEventListener("click", () => {
+      const form = document.getElementById("signupForm");
+      if (form) form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+    });
+  </script>
 </body>
 </html>

@@ -560,3 +560,105 @@ body::before {
   color: #6EE7B7;
   border: 1px solid rgba(16, 185, 129, 0.2);
 }
+
+/* --- INDICADOR MERCADO PAGO --- */
+.mp-hint-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.mp-hint {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  transition: opacity 0.4s ease;
+}
+
+.mp-hint-arrow {
+  font-size: 22px;
+  color: #f59e0b;
+  animation: mp-bounce 0.9s ease-in-out infinite;
+  display: block;
+  line-height: 1;
+}
+
+.mp-hint-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #f59e0b;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+
+@keyframes mp-bounce {
+  0%, 100% { transform: translateX(0); }
+  50%       { transform: translateX(-6px); }
+}
+
+/* --- RESPONSIVE MOBILE FIXES --- */
+@media (max-width: 480px) {
+  body {
+    padding: 12px 12px 60px 12px;
+  }
+
+  .wrap {
+    gap: 16px;
+  }
+
+  .shop-title {
+    font-size: 20px;
+  }
+
+  .btn {
+    font-size: 14px;
+    padding: 14px 12px;
+  }
+
+  .summary-row {
+    flex-wrap: wrap;
+    gap: 2px;
+  }
+
+  .slots-grid {
+    grid-template-columns: repeat(auto-fill, minmax(68px, 1fr));
+    gap: 8px;
+  }
+
+  .slot-btn {
+    font-size: 13px;
+    padding: 10px 0;
+  }
+
+  .step-title {
+    font-size: 17px;
+  }
+
+  /* En mobile muy chico, el hint va abajo del botón MP */
+  .mp-hint-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .mp-hint {
+    flex-direction: row;
+    gap: 6px;
+    margin-top: 4px;
+  }
+
+  .mp-hint-arrow {
+    font-size: 16px;
+    animation: mp-bounce-down 0.9s ease-in-out infinite;
+    transform: rotate(90deg);
+    display: inline-block;
+  }
+
+  @keyframes mp-bounce-down {
+    0%, 100% { transform: rotate(90deg) translateX(0); }
+    50%       { transform: rotate(90deg) translateX(-5px); }
+  }
+}
+

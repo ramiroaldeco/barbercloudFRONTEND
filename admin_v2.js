@@ -35,6 +35,19 @@ function safeShow(id, show) {
   if (el) el.style.display = show ? "block" : "none";
 }
 
+// ── Formato de fecha corto: YYYY-MM-DD → dd/mm/yy ──
+function fmtDateShort(dateStr) {
+  if (!dateStr) return "";
+  // Soporta formato ISO "YYYY-MM-DD" o Date object
+  try {
+    const [y, m, d] = String(dateStr).substring(0, 10).split("-");
+    if (!y || !m || !d) return dateStr;
+    return `${d}/${m}/${y.slice(2)}`;
+  } catch {
+    return dateStr;
+  }
+}
+
 // ---- UI UX Helpers (Fase 9) ----
 function renderTableSkeletons(tbody, cols, rows = 5) {
   if (!tbody) return;
@@ -750,7 +763,7 @@ async function loadAppointments(isSilentPoll = false, resetPage = false) {
       }
 
       const htmlContent = `
-        <td>${escapeHtml(a.date || "")}</td>
+        <td>${escapeHtml(fmtDateShort(a.date) || "")}</td>
         <td>${escapeHtml(a.time || "")}</td>
         <td>${escapeHtml(a.barber?.name || "\u2014")}</td>
         <td>${escapeHtml(a.service?.name || "")}</td>
@@ -803,7 +816,7 @@ async function loadAppointments(isSilentPoll = false, resetPage = false) {
               <div class="appt-card-top">
                 <div class="appt-card-datetime">
                   <span class="appt-card-time">${escapeHtml(a.time || '')}</span>
-                  <span class="appt-card-date">${escapeHtml(a.date || '')}</span>
+                  <span class="appt-card-date">${escapeHtml(fmtDateShort(a.date) || '')}</span>
                 </div>
                 ${statusBadge(a.status, a.lockExpiresAt)}
               </div>

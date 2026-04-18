@@ -889,3 +889,64 @@ select.input {
   .appt-card-body { grid-template-columns: 1fr; }
   .tab { font-size: 11px; padding: 6px 4px; }
 }
+
+/* ── EXTRA RESPONSIVE FIXES (Punto 5) ──────────────────── */
+
+/* Badge: evitar desborde en celdas angostas */
+.badge {
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Filtros no se montan en mobile */
+@media (max-width: 768px) {
+  .filters input.input,
+  .filters select.input {
+    min-width: 0;
+    width: 100%;
+  }
+
+  /* Modal footer en columna en mobile muy chico */
+  .modal-foot {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .modal-foot .btn,
+  .modal-foot .ghost-btn {
+    width: 100%;
+    text-align: center;
+    justify-content: center;
+  }
+
+  /* Topbar: texto sin overflow */
+  .top-left h1 {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: calc(100vw - 120px);
+  }
+
+  /* Bottón "Nuevo turno" en topbar en mobile */
+  .top-right .btn {
+    font-size: 12px;
+    padding: 0 10px;
+    height: 36px;
+  }
+
+  /* Inputs de modal en columna */
+  .modal-body .row {
+    flex-direction: column;
+  }
+
+  /* Tabla de servicios, clientes: inputs/acciones no se montan */
+  .table td { font-size: 13px; padding: 10px 8px; }
+  .table th { padding: 10px 8px; font-size: 11px; }
+}
+
+@media (max-width: 360px) {
+  .badge { max-width: 100px; font-size: 11px; }
+  .btn { font-size: 12px; padding: 0 10px; }
+}
+
